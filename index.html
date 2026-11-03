@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>맛집 기록서</title>
+<meta name="description" content="사진, 먹은 메뉴, 한줄평, 별점으로 남기는 나만의 맛집 기록">
+<meta name="theme-color" content="#FFF8F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="맛집 기록서">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  html,body{ margin:0; padding:0; }
+  :root{
+    color-scheme:light;
+    --bg:#FFF8F1;
+    --surface:#FFFFFF;
+    --surface-alt:#F7EEE4;
+    --ink:#2B211A;
+    --ink-soft:#5C4C40;
+    --muted:#A08E80;
+    --line:#F0E3D5;
+    --accent:#FF6A3D;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#FFEDE3;
+    --star:#FFB21E;
+    --star-off:#EADCCD;
+    --danger:#E5484D;
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:10px;
+    --shadow:0 1px 2px rgba(90,50,20,.05), 0 6px 18px rgba(90,50,20,.06);
+    --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--font-ui);
+    font-size:15px; line-height:1.45; -webkit-text-size-adjust:100%;
+  }
+  body.fd-locked{ overflow:hidden; }
+  button{ font:inherit; color:inherit; border:0; background:none; padding:0; cursor:pointer; }
+  input, textarea, select{ font:inherit; font-size:16px; color:inherit; }
+
+  @keyframes fd-rise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+  @keyframes fd-sheet-in{ from{ transform:translateY(100%); } to{ transform:none; } }
+  @keyframes fd-fade-in{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes fd-pop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+  @keyframes fd-spin{ to{ transform:rotate(360deg); } }
+
+  .fd-press{ transition:transform .12s ease, background-color .15s ease, opacity .15s ease; }
+  .fd-press:active{ transform:scale(.96); }
+
+  /* ---- layout ---- */
+  .fd-app{
+    max-width:560px; margin:0 auto;
+    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px);
+  }
+  .fd-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .fd-head h1{ margin:0; font-size:26px; letter-spacing:-.5px; font-weight:800; }
+  .fd-sub{ margin:2px 0 0; color:var(--muted); font-size:13.5px; }
+  .fd-icon-btn{
+    width:40px; height:40px; border-radius:50%; background:var(--surface);
+    box-shadow:var(--shadow); display:grid; place-items:center; flex:none;
+  }
+  .fd-icon-btn svg{ width:20px; height:20px; }
+
+  .fd-search{
+    margin-top:16px; display:flex; align-items:center; gap:8px;
+    background:var(--surface); border-radius:var(--radius-md); padding:0 14px; height:46px;
+    box-shadow:var(--shadow);
+  }
+  .fd-search svg{ width:18px; height:18px; color:var(--muted); flex:none; }
+  .fd-search input{ flex:1; min-width:0; border:0; outline:0; background:none; height:100%; }
+  .fd-search input::placeholder{ color:var(--muted); }
+  .fd-search input::-webkit-search-cancel-button{ display:none; }
+  .fd-clear{ color:var(--muted); font-size:13px; padding:6px 0 6px 6px; }
+
+  .fd-chips{
+    display:flex; gap:6px; overflow-x:auto; margin:12px -16px 0; padding:2px 16px 4px;
+    scrollbar-width:none;
+  }
+  .fd-chips::-webkit-scrollbar{ display:none; }
+  .fd-chip{
+    flex:none; height:34px; padding:0 13px; border-radius:17px; background:var(--surface);
+    border:1px solid var(--line); font-size:14px; color:var(--ink-soft); white-space:nowrap;
+  }
+  .fd-chip.on{ background:var(--ink); border-color:var(--ink); color:#fff; font-weight:600; }
+
+  .fd-sortbar{ display:flex; align-items:center; justify-content:space-between; margin:14px 2px 10px; }
+  .fd-count{ font-size:13px; color:var(--muted); }
+  .fd-seg{ display:flex; background:var(--surface-alt); border-radius:10px; padding:3px; }
+  .fd-seg button{ font-size:13px; padding:5px 10px; border-radius:8px; color:var(--muted); }
+  .fd-seg button.on{ background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+  /* ---- list ---- */
+  .fd-list{ display:flex; flex-direction:column; gap:10px; }
+  .fd-card{
+    display:flex; gap:12px; padding:12px; background:var(--surface); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow); text-align:left; width:100%; animation:fd-rise .25s ease both;
+  }
+  .fd-thumb{
+    width:88px; height:88px; border-radius:var(--radius-md); flex:none; overflow:hidden; position:relative;
+    background:var(--surface-alt); display:grid; place-items:center; font-size:36px;
+  }
+  .fd-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fd-thumb-count{
+    position:absolute; right:5px; bottom:5px; font-size:11px; font-weight:600; color:#fff;
+    background:rgba(0,0,0,.45); border-radius:8px; padding:1px 6px;
+  }
+  .fd-card-body{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .fd-card-top{ display:flex; align-items:center; gap:6px; }
+  .fd-card-title{ font-weight:700; font-size:16.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .fd-again{ flex:none; font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:1px 6px; }
+  .fd-card-meta{ font-size:12.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fd-card-quote{
+    font-size:14px; color:var(--ink-soft); margin-top:5px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:keep-all;
+  }
+  .fd-menu-chips{ display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .fd-menu-chip{ font-size:12px; background:var(--surface-alt); color:var(--ink-soft); border-radius:6px; padding:2px 7px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .fd-stars-ro{ display:inline-flex; letter-spacing:-1px; color:var(--star-off); font-size:13px; }
+  .fd-stars-ro .on{ color:var(--star); }
+  .fd-stars-ro.lg{ font-size:22px; letter-spacing:0; }
+
+  .fd-empty{ text-align:center; padding:56px 20px; color:var(--muted); animation:fd-rise .3s ease both; }
+  .fd-empty-emoji{ font-size:56px; }
+  .fd-empty h2{ color:var(--ink); font-size:18px; margin:12px 0 4px; }
+  .fd-empty p{ margin:0; font-size:14px; }
+
+  .fd-fab{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 20px);
+    height:54px; padding:0 26px; border-radius:27px; background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:16px; box-shadow:0 8px 22px rgba(255,106,61,.38); z-index:10;
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .fd-fab:active{ transform:translateX(-50%) scale(.96); }
+
+  /* ---- sheets ---- */
+  .fd-backdrop{ position:fixed; inset:0; background:rgba(30,18,10,.35); z-index:20; animation:fd-fade-in .2s ease; }
+  .fd-sheet{
+    position:fixed; inset:0; z-index:21; background:var(--bg); display:flex; flex-direction:column;
+    animation:fd-sheet-in .28s cubic-bezier(.2,.8,.2,1);
+  }
+  .fd-sheet.closing{ transition:transform .22s ease; transform:translateY(100%); }
+  .fd-sheet-head{
+    flex:none; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:calc(env(safe-area-inset-top) + 8px) 8px 8px; background:var(--bg);
+    border-bottom:1px solid transparent;
+  }
+  .fd-sheet-head h2{ margin:0; font-size:16.5px; font-weight:700; flex:1; text-align:center; }
+  .fd-text-btn{ min-width:64px; height:40px; padding:0 10px; font-size:16px; color:var(--ink-soft); border-radius:10px; }
+  .fd-text-btn.strong{ color:var(--accent); font-weight:700; }
+  .fd-sheet-body{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+    padding:4px 16px calc(env(safe-area-inset-bottom) + 32px);
+  }
+  .fd-sheet-inner{ max-width:560px; margin:0 auto; }
+
+  /* ---- form ---- */
+  .fd-field{ margin-top:22px; }
+  .fd-label{ display:block; font-size:13.5px; font-weight:700; color:var(--ink-soft); margin:0 2px 8px; }
+  .fd-label small{ font-weight:400; color:var(--muted); margin-left:4px; }
+  .fd-input, .fd-textarea{
+    width:100%; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius-md);
+    padding:0 14px; height:48px; outline:0; transition:border-color .15s ease;
+  }
+  .fd-textarea{ height:auto; min-height:88px; padding:12px 14px; resize:none; line-height:1.5; }
+  .fd-input:focus, .fd-textarea:focus{ border-color:var(--accent); }
+  .fd-input::placeholder, .fd-textarea::placeholder{ color:#C4B4A6; }
+  .fd-input.big{ height:54px; font-size:18px; font-weight:700; }
+  .fd-counter{ text-align:right; font-size:12px; color:var(--muted); margin-top:4px; }
+  .fd-row{ display:flex; gap:8px; }
+  .fd-row > *{ flex:1; min-width:0; }
+  input[type="date"].fd-input{ -webkit-appearance:none; appearance:none; display:flex; align-items:center; line-height:48px; }
+
+  .fd-photos{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+  .fd-photo-tile{ position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface-alt); }
+  .fd-photo-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:5px; padding:1px 5px; }
+  .fd-photo-del{
+    position:absolute; right:3px; top:3px; width:24px; height:24px; border-radius:50%;
+    background:rgba(0,0,0,.55); color:#fff; font-size:13px; line-height:24px; text-align:center;
+  }
+  .fd-photo-add{
+    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #E2CDB9; background:var(--surface);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); font-size:12px;
+  }
+  .fd-photo-add svg{ width:24px; height:24px; color:var(--accent); }
+  .fd-spinner{ width:22px; height:22px; border-radius:50%; border:2.5px solid var(--line); border-top-color:var(--accent); animation:fd-spin .8s linear infinite; margin:auto; position:absolute; inset:0; }
+  .fd-hint{ font-size:12px; color:var(--muted); margin:6px 2px 0; }
+
+  .fd-cat-pick{ display:flex; flex-wrap:wrap; gap:6px; }
+  .fd-cat-pick .fd-chip{ height:36px; }
+  .fd-cat-pick .fd-chip.on{ background:var(--accent); border-color:var(--accent); }
+
+  .fd-rate{ display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:8px 12px; }
+  .fd-stars-in{ display:flex; }
+  .fd-stars-in button{ font-size:32px; line-height:1; width:40px; height:42px; color:var(--star-off); transition:color .12s ease; }
+  .fd-stars-in button.on{ color:var(--star); }
+  .fd-stars-in button.pop{ animation:fd-pop .28s ease; }
+  .fd-stars-in.sm button{ font-size:21px; width:27px; height:32px; }
+  .fd-rate-word{ font-size:14px; font-weight:700; color:var(--accent); white-space:nowrap; }
+
+  .fd-menus{ display:flex; flex-direction:column; gap:8px; }
+  .fd-menu-edit{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px; animation:fd-rise .2s ease both; }
+  .fd-menu-edit .fd-row{ align-items:center; }
+  .fd-menu-edit .fd-input{ height:42px; border-radius:var(--radius-sm); }
+  .fd-menu-edit .fd-row + .fd-row{ margin-top:6px; }
+  .fd-menu-edit .fd-stars-in{ flex:none; }
+  .fd-menu-del{ flex:none !important; width:34px; height:34px; border-radius:50%; color:var(--muted); font-size:15px; }
+  .fd-add-line{
+    width:100%; height:46px; border-radius:var(--radius-md); border:1.5px dashed #E2CDB9; color:var(--accent);
+    font-weight:700; font-size:14.5px; background:transparent;
+  }
+
+  .fd-toggle{ display:flex; gap:8px; }
+  .fd-toggle button{
+    flex:1; height:48px; border-radius:var(--radius-md); background:var(--surface); border:1px solid var(--line);
+    font-size:14.5px; color:var(--ink-soft);
+  }
+  .fd-toggle button.on{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700; }
+
+  .fd-danger-btn{ width:100%; height:48px; margin-top:28px; border-radius:var(--radius-md); color:var(--danger); background:var(--surface); border:1px solid var(--line); font-weight:600; }
+
+  /* ---- detail ---- */
+  .fd-gallery{ position:relative; margin:4px -16px 0; }
+  .fd-gallery-track{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .fd-gallery-track::-webkit-scrollbar{ display:none; }
+  .fd-gallery-track button{ flex:none; width:100%; aspect-ratio:4/3; scroll-snap-align:center; background:var(--surface-alt); }
+  .fd-gallery-track img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(0,0,0,.45); border-radius:10px; padding:2px 9px; pointer-events:none; }
+  .fd-detail-hero-empty{ margin:4px 0 0; height:130px; border-radius:var(--radius-lg); background:var(--surface-alt); display:grid; place-items:center; font-size:58px; }
+  .fd-detail-title{ margin:18px 0 0; font-size:24px; font-weight:800; letter-spacing:-.4px; word-break:keep-all; }
+  .fd-detail-meta{ color:var(--muted); font-size:14px; margin-top:4px; }
+  .fd-detail-rate{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .fd-quote-box{
+    margin-top:16px; background:var(--surface); border-radius:var(--radius-lg); padding:16px 18px; box-shadow:var(--shadow);
+    font-size:17px; font-weight:600; line-height:1.5; word-break:keep-all; position:relative;
+  }
+  .fd-quote-box::before{ content:"“"; position:absolute; left:10px; top:-8px; font-size:44px; color:var(--accent); opacity:.35; font-family:Georgia,serif; }
+  .fd-section-title{ font-size:14px; font-weight:700; color:var(--ink-soft); margin:24px 2px 8px; }
+  .fd-menu-list{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden; }
+  .fd-menu-item{ padding:13px 16px; }
+  .fd-menu-item + .fd-menu-item{ border-top:1px solid var(--line); }
+  .fd-menu-item-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .fd-menu-item-name{ font-weight:700; word-break:keep-all; }
+  .fd-menu-item-note{ font-size:14px; color:var(--ink-soft); margin-top:3px; }
+  .fd-memo{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:14px 16px; white-space:pre-wrap; word-break:break-word; font-size:14.5px; color:var(--ink-soft); }
+  .fd-detail-actions{ display:flex; gap:8px; margin-top:28px; }
+  .fd-detail-actions button{ flex:1; height:50px; border-radius:var(--radius-md); font-weight:700; }
+  .fd-btn-primary{ background:var(--accent); color:var(--accent-ink); }
+  .fd-btn-ghost{ background:var(--surface); border:1px solid var(--line); color:var(--danger); }
+
+  /* ---- photo viewer ---- */
+  .fd-viewer{ position:fixed; inset:0; z-index:40; background:#000; animation:fd-fade-in .18s ease; }
+  .fd-viewer-track{ display:flex; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .fd-viewer-track::-webkit-scrollbar{ display:none; }
+  .fd-viewer-track div{ flex:none; width:100%; height:100%; scroll-snap-align:center; display:grid; place-items:center; }
+  .fd-viewer-track img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .fd-viewer-close{ position:absolute; right:12px; top:calc(env(safe-area-inset-top) + 10px); width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.18); color:#fff; font-size:18px; }
+  .fd-viewer-count{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 20px); text-align:center; color:#fff; font-size:14px; pointer-events:none; }
+
+  /* ---- action sheet ---- */
+  .fd-action-sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--surface); border-radius:22px 22px 0 0;
+    padding:10px 16px calc(env(safe-area-inset-bottom) + 16px); animation:fd-sheet-in .25s cubic-bezier(.2,.8,.2,1);
+    max-width:560px; margin:0 auto;
+  }
+  .fd-action-sheet.closing{ transition:transform .2s ease; transform:translateY(100%); }
+  .fd-grab{ width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 12px; }
+  .fd-action-sheet h3{ margin:0 4px 4px; font-size:17px; }
+  .fd-action-sheet p{ margin:0 4px 14px; color:var(--muted); font-size:13px; }
+  .fd-action{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 6px; border-radius:12px; text-align:left; font-size:16px; }
+  .fd-action:active{ background:var(--surface-alt); }
+  .fd-action span:first-child{ width:38px; height:38px; border-radius:12px; background:var(--accent-soft); display:grid; place-items:center; font-size:19px; flex:none; }
+  .fd-action small{ display:block; color:var(--muted); font-size:12.5px; }
+
+  /* ---- toast ---- */
+  .fd-toast{
+    position:fixed; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom) + 88px); z-index:50;
+    max-width:420px; margin:0 auto; background:rgba(43,33,26,.94); color:#fff; border-radius:14px;
+    padding:13px 16px; font-size:14.5px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+  }
+  .fd-toast.show{ opacity:1; transform:none; pointer-events:auto; }
+  .fd-toast button{ color:#FFB89E; font-weight:700; flex:none; padding:4px 2px; }
+</style>
+</head>
+<body>
+<div class="fd-app">
+  <header class="fd-head">
+    <div>
+      <h1>맛집 기록서</h1>
+      <p class="fd-sub" id="fd-stats"></p>
+    </div>
+    <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    </button>
+  </header>
+  <label class="fd-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="fd-q" type="search" placeholder="가게, 메뉴, 지역으로 찾기" autocomplete="off" enterkeyhint="search">
+    <button class="fd-clear" id="fd-q-clear" type="button" hidden>지우기</button>
+  </label>
+  <div class="fd-chips" id="fd-cats"></div>
+  <div class="fd-sortbar">
+    <span class="fd-count" id="fd-count"></span>
+    <div class="fd-seg" id="fd-sort">
+      <button data-sort="recent">최근 방문</button>
+      <button data-sort="rating">별점 높은</button>
+    </div>
+  </div>
+  <main class="fd-list" id="fd-list"></main>
+</div>
+<button class="fd-fab" id="fd-add"><span style="font-size:20px;line-height:1">＋</span> 맛집 기록하기</button>
+<input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
+<input type="file" id="fd-import-input" accept="application/json,.json" hidden>
+<div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
+
+<script>
+(function(){
+  'use strict';
+
+  var KEY = 'fd_data_v1';
+  var MAX_PHOTOS = 10;
+  var CATS = [
+    { name:'한식', emoji:'🍚' }, { name:'일식', emoji:'🍣' }, { name:'중식', emoji:'🥟' },
+    { name:'양식', emoji:'🍝' }, { name:'분식', emoji:'🍢' }, { name:'고기', emoji:'🥩' },
+    { name:'아시안', emoji:'🍜' }, { name:'카페·디저트', emoji:'🍰' }, { name:'술집', emoji:'🍻' },
+    { name:'기타', emoji:'🍴' }
+  ];
+  var RATE_WORDS = ['별을 눌러요','별로였어요', '그저 그래요', '괜찮았어요', '맛있어요!', '인생 맛집 🔥'];
+
+  // ---------- 작은 도구 ----------
+  function $(sel, root){ return (root || document).querySelector(sel); }
+  function $all(sel, root){ return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function today(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function isDate(s){ return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+  function fmtDate(s){
+    if (!isDate(s)) return '';
+    var p = s.split('-');
+    var y = Number(p[0]), thisYear = new Date().getFullYear();
+    return (y === thisYear ? '' : y + '. ') + Number(p[1]) + '. ' + Number(p[2]) + '.';
+  }
+  function catEmoji(name){
+    for (var i = 0; i < CATS.length; i++) if (CATS[i].name === name) return CATS[i].emoji;
+    return '🍽️';
+  }
+  function clampRating(v){ v = Math.round(Number(v)); return v >= 1 && v <= 5 ? v : 0; }
+  function cmp(a, b){ return a < b ? -1 : a > b ? 1 : 0; }
+
+  // ---------- 저장 (기록은 localStorage, 사진은 IndexedDB) ----------
+  function normalizeMenu(m){
+    m = (m && typeof m === 'object') ? m : {};
+    return Object.assign({}, m, {
+      id: typeof m.id === 'string' && m.id ? m.id : uid(),
+      name: typeof m.name === 'string' ? m.name : '',
+      rating: clampRating(m.rating),
+      note: typeof m.note === 'string' ? m.note : ''
+    });
+  }
+  function normalizePlace(p){
+    p = (p && typeof p === 'object') ? p : {};
+    return Object.assign({}, p, {
+      id: typeof p.id === 'string' && p.id ? p.id : uid(),
+      name: typeof p.name === 'string' ? p.name : '',
+      category: typeof p.category === 'string' ? p.category : '',
+      area: typeof p.area === 'string' ? p.area : '',
+      visitedAt: isDate(p.visitedAt) ? p.visitedAt : '',
+      rating: clampRating(p.rating),
+      oneLiner: typeof p.oneLiner === 'string' ? p.oneLiner : '',
+      menus: Array.isArray(p.menus) ? p.menus.map(normalizeMenu) : [],
+      photos: Array.isArray(p.photos) ? p.photos.filter(function(x){ return typeof x === 'string' && x; }) : [],
+      revisit: p.revisit === 'yes' || p.revisit === 'no' ? p.revisit : '',
+      memo: typeof p.memo === 'string' ? p.memo : '',
+      createdAt: typeof p.createdAt === 'string' ? p.createdAt : '',
+      updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : ''
+    });
+  }
+  function normalizeState(s){
+    s = (s && typeof s === 'object') ? s : {};
+    return Object.assign({}, s, {
+      version: 1,
+      places: Array.isArray(s.places) ? s.places.map(normalizePlace) : []
+    });
+  }
+  function load(){
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { return normalizeState(null); }
+    if (!raw) return normalizeState(null);
+    try { return normalizeState(JSON.parse(raw)); }
+    catch (e) {
+      // 읽지 못한 원문은 지우지 않고 옆에 남겨 둔다
+      try {
+        var k = KEY + '_unreadable', n = 0;
+        while (localStorage.getItem(n ? k + '_' + n : k) !== null) n++;
+        localStorage.setItem(n ? k + '_' + n : k, raw);
+      } catch (e2) {}
+      return normalizeState(null);
+    }
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+    catch (e) { toast('저장하지 못했어요. 저장 공간을 확인해 주세요'); return false; }
+  }
+
+  var dbPromise = null;
+  function db(){
+    if (!dbPromise) dbPromise = new Promise(function(resolve, reject){
+      var req = indexedDB.open('fd_photos', 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore('photos', { keyPath:'id' }); };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    return dbPromise;
+  }
+  function idb(mode, fn){
+    return db().then(function(d){
+      return new Promise(function(resolve, reject){
+        var tx = d.transaction('photos', mode);
+        var out = fn(tx.objectStore('photos'));
+        tx.oncomplete = function(){ resolve(out && 'result' in out ? out.result : undefined); };
+        tx.onerror = function(){ reject(tx.error); };
+        tx.onabort = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function photoGet(id){ return idb('readonly', function(s){ return s.get(id); }); }
+  function photoPut(rec){ return idb('readwrite', function(s){ s.put(rec); }); }
+  function photoDel(ids){
+    ids.forEach(forgetUrl);
+    if (!ids.length) return Promise.resolve();
+    return idb('readwrite', function(s){ ids.forEach(function(id){ s.delete(id); }); }).catch(function(){});
+  }
+
+  var urlCache = {};
+  function photoUrl(id, kind){
+    var key = id + ':' + kind;
+    if (urlCache[key]) return Promise.resolve(urlCache[key]);
+    return photoGet(id).then(function(rec){
+      if (!rec || !rec[kind]) return null;
+      return (urlCache[key] = URL.createObjectURL(rec[kind]));
+    }).catch(function(){ return null; });
+  }
+  function forgetUrl(id){
+    ['thumb', 'full'].forEach(function(k){
+      var key = id + ':' + k;
+      if (urlCache[key]) { URL.revokeObjectURL(urlCache[key]); delete urlCache[key]; }
+    });
+  }
+  function hydrateImgs(root){
+    $all('img[data-pid]', root).forEach(function(img){
+      if (img.getAttribute('src')) return;
+      photoUrl(img.dataset.pid, img.dataset.kind || 'thumb').then(function(u){
+        if (u) img.src = u;
+        else img.style.visibility = 'hidden';
+      });
+    });
+  }
+
+  // 사진은 큰 것 하나(긴 변 1600px)와 정사각 썸네일 하나로 줄여서 담는다
+  function loadImage(file){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){ resolve({ img:img, url:url }); };
+      img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('image')); };
+      img.src = url;
+    });
+  }
+  function toBlob(canvas, q){
+    return new Promise(function(resolve, reject){
+      canvas.toBlob(function(b){ b ? resolve(b) : reject(new Error('blob')); }, 'image/jpeg', q);
+    });
+  }
+  function processPhoto(file){
+    return loadImage(file).then(function(r){
+      var img = r.img, w = img.naturalWidth, h = img.naturalHeight;
+      var s = Math.min(1, 1600 / Math.max(w, h));
+      var c1 = document.createElement('canvas');
+      c1.width = Math.round(w * s); c1.height = Math.round(h * s);
+      c1.getContext('2d').drawImage(img, 0, 0, c1.width, c1.height);
+      var side = Math.min(w, h), T = 360;
+      var c2 = document.createElement('canvas');
+      c2.width = T; c2.height = T;
+      c2.getContext('2d').drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, T, T);
+      return Promise.all([toBlob(c1, .84), toBlob(c2, .8)]).then(function(b){
+        URL.revokeObjectURL(r.url);
+        return { id:'ph_' + uid(), full:b[0], thumb:b[1] };
+      });
+    });
+  }
+
+  // ---------- 상태 ----------
+  var state = load();
+  var ui = { q:'', cat:'', sort:'recent' };
+  save();
+
+  function findPlace(id){
+    for (var i = 0; i < state.places.length; i++) if (state.places[i].id === id) return state.places[i];
+    return null;
+  }
+
+  // ---------- 목록 ----------
+  function starsRO(v, cls){
+    var s = '';
+    for (var i = 1; i <= 5; i++) s += '<span' + (i <= v ? ' class="on"' : '') + '>★</span>';
+    return '<span class="fd-stars-ro ' + (cls || '') + '" aria-label="별점 ' + v + '점">' + s + '</span>';
+  }
+  function matches(p, q){
+    if (!q) return true;
+    var hay = [p.name, p.area, p.category, p.oneLiner, p.memo]
+      .concat(p.menus.map(function(m){ return m.name + ' ' + m.note; })).join(' ').toLowerCase();
+    return q.toLowerCase().split(/\s+/).every(function(w){ return !w || hay.indexOf(w) !== -1; });
+  }
+  function visible(){
+    var list = state.places.filter(function(p){
+      return (!ui.cat || p.category === ui.cat) && matches(p, ui.q);
+    });
+    list.sort(function(a, b){
+      if (ui.sort === 'rating') {
+        var r = cmp(b.rating, a.rating);
+        if (r) return r;
+      }
+      return cmp(b.visitedAt, a.visitedAt) || cmp(b.createdAt, a.createdAt);
+    });
+    return list;
+  }
+  function cardHTML(p, i){
+    var thumb = p.photos.length
+      ? '<img data-pid="' + esc(p.photos[0]) + '" alt="">' + (p.photos.length > 1 ? '<span class="fd-thumb-count">' + p.photos.length + '</span>' : '')
+      : catEmoji(p.category);
+    var meta = [p.area, p.category, fmtDate(p.visitedAt)].filter(Boolean).map(esc).join(' · ');
+    var menus = p.menus.filter(function(m){ return m.name; }).slice(0, 4).map(function(m){
+      return '<span class="fd-menu-chip">' + esc(m.name) + '</span>';
+    }).join('');
+    return '<button class="fd-card fd-press" data-open="' + esc(p.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
+      '<div class="fd-thumb">' + thumb + '</div>' +
+      '<div class="fd-card-body">' +
+        '<div class="fd-card-top"><span class="fd-card-title">' + esc(p.name || '이름 없는 가게') + '</span>' +
+          (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : '') + '</div>' +
+        '<div class="fd-card-meta">' + (p.rating ? starsRO(p.rating) + ' ' : '') + meta + '</div>' +
+        (p.oneLiner ? '<div class="fd-card-quote">' + esc(p.oneLiner) + '</div>' : '') +
+        (menus ? '<div class="fd-menu-chips">' + menus + '</div>' : '') +
+      '</div></button>';
+  }
+  function renderCats(){
+    var used = {};
+    state.places.forEach(function(p){ if (p.category) used[p.category] = true; });
+    var html = '<button class="fd-chip' + (ui.cat ? '' : ' on') + '" data-cat="">전체</button>';
+    CATS.forEach(function(c){
+      if (!used[c.name] && ui.cat !== c.name) return;
+      html += '<button class="fd-chip' + (ui.cat === c.name ? ' on' : '') + '" data-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
+    });
+    $('#fd-cats').innerHTML = html;
+  }
+  function renderStats(){
+    var n = state.places.length;
+    var rated = state.places.filter(function(p){ return p.rating; });
+    var avg = rated.length ? rated.reduce(function(s, p){ return s + p.rating; }, 0) / rated.length : 0;
+    $('#fd-stats').textContent = n
+      ? '지금까지 ' + n + '곳을 기록했어요' + (avg ? ' · 평균 ★' + avg.toFixed(1) : '')
+      : '맛있게 먹은 곳을 하나씩 남겨 보세요';
+  }
+  // 검색창은 건드리지 않고 목록만 다시 그린다
+  function renderList(){
+    var list = visible(), el = $('#fd-list');
+    $('#fd-count').textContent = state.places.length ? list.length + '곳' : '';
+    $('#fd-sort').style.visibility = state.places.length ? '' : 'hidden';
+    $all('#fd-sort button').forEach(function(b){ b.classList.toggle('on', b.dataset.sort === ui.sort); });
+    if (!state.places.length) {
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍽️</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
+    } else if (!list.length) {
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 맛집이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
+    } else {
+      el.innerHTML = list.map(cardHTML).join('');
+      hydrateImgs(el);
+    }
+  }
+  function render(){ renderStats(); renderCats(); renderList(); }
+
+  // ---------- 시트 ----------
+  var openCount = 0;
+  function lock(){ if (openCount++ === 0) document.body.classList.add('fd-locked'); }
+  function unlock(){ if (--openCount <= 0) { openCount = 0; document.body.classList.remove('fd-locked'); } }
+
+  function openSheet(o){
+    var el = document.createElement('div');
+    el.className = 'fd-sheet';
+    el.innerHTML =
+      '<div class="fd-sheet-head">' +
+        '<button class="fd-text-btn" data-act="close">' + (o.leftLabel || '닫기') + '</button>' +
+        '<h2>' + esc(o.title) + '</h2>' +
+        (o.right || '<span class="fd-text-btn"></span>') +
+      '</div>' +
+      '<div class="fd-sheet-body"><div class="fd-sheet-inner"></div></div>';
+    $('.fd-sheet-inner', el).innerHTML = o.body;
+    document.body.appendChild(el);
+    lock();
+    var body = $('.fd-sheet-body', el), head = $('.fd-sheet-head', el);
+    body.addEventListener('scroll', function(){
+      head.style.borderBottomColor = body.scrollTop > 4 ? 'var(--line)' : 'transparent';
+    }, { passive:true });
+    el.close = function(){
+      if (el.closed) return;
+      el.closed = true;
+      if (document.activeElement && el.contains(document.activeElement)) document.activeElement.blur();
+      el.classList.add('closing');
+      setTimeout(function(){ el.remove(); }, 230);
+      unlock();
+    };
+    return el;
+  }
+
+  function openActionSheet(title, desc, actions){
+    var bd = document.createElement('div'); bd.className = 'fd-backdrop';
+    var el = document.createElement('div'); el.className = 'fd-action-sheet';
+    el.innerHTML = '<div class="fd-grab"></div><h3>' + esc(title) + '</h3>' + (desc ? '<p>' + esc(desc) + '</p>' : '') +
+      actions.map(function(a, i){
+        return '<button class="fd-action" data-i="' + i + '"><span>' + a.icon + '</span><span>' + esc(a.label) +
+          (a.sub ? '<small>' + esc(a.sub) + '</small>' : '') + '</span></button>';
+      }).join('');
+    document.body.appendChild(bd); document.body.appendChild(el);
+    lock();
+    function close(){
+      el.classList.add('closing'); bd.style.transition = 'opacity .2s'; bd.style.opacity = '0';
+      setTimeout(function(){ el.remove(); bd.remove(); }, 210);
+      unlock();
+    }
+    bd.addEventListener('click', close);
+    el.addEventListener('click', function(e){
+      var b = e.target.closest('[data-i]');
+      if (!b) return;
+      close();
+      actions[Number(b.dataset.i)].run();
+    });
+  }
+
+  // ---------- 상세 ----------
+  function detailHTML(p){
+    var html = '';
+    if (p.photos.length) {
+      html += '<div class="fd-gallery"><div class="fd-gallery-track">' +
+        p.photos.map(function(id, i){
+          return '<button data-view="' + i + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
+        }).join('') + '</div>' +
+        (p.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + p.photos.length + '</span>' : '') + '</div>';
+    } else {
+      html += '<div class="fd-detail-hero-empty">' + catEmoji(p.category) + '</div>';
+    }
+    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area, p.visitedAt ? fmtDate(p.visitedAt) + ' 방문' : '']
+      .filter(Boolean).map(esc).join(' · ');
+    html += '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>';
+    if (meta) html += '<div class="fd-detail-meta">' + meta + '</div>';
+    if (p.rating || p.revisit) {
+      html += '<div class="fd-detail-rate">' + (p.rating ? starsRO(p.rating, 'lg') + '<span class="fd-rate-word">' + esc(RATE_WORDS[p.rating]) + '</span>' : '') +
+        (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : p.revisit === 'no' ? '<span class="fd-again" style="color:var(--muted);background:var(--surface-alt)">한 번이면 충분</span>' : '') + '</div>';
+    }
+    if (p.oneLiner) html += '<div class="fd-quote-box">' + esc(p.oneLiner) + '</div>';
+    var menus = p.menus.filter(function(m){ return m.name || m.note || m.rating; });
+    if (menus.length) {
+      html += '<div class="fd-section-title">먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
+        menus.map(function(m){
+          return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
+            (m.rating ? starsRO(m.rating) : '') + '</div>' +
+            (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+    if (p.memo) html += '<div class="fd-section-title">메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
+    html += '<div class="fd-detail-actions"><button class="fd-btn-ghost fd-press" data-act="delete">지우기</button>' +
+      '<button class="fd-btn-primary fd-press" data-act="edit">고치기</button></div>';
+    return html;
+  }
+  function fillDetail(sheet, p){
+    var inner = $('.fd-sheet-inner', sheet);
+    inner.innerHTML = detailHTML(p);
+    hydrateImgs(inner);
+    var track = $('.fd-gallery-track', inner), count = $('.fd-gallery-count', inner);
+    if (track && count) track.addEventListener('scroll', function(){
+      var i = Math.round(track.scrollLeft / track.clientWidth);
+      count.textContent = (i + 1) + ' / ' + p.photos.length;
+    }, { passive:true });
+  }
+  function openDetail(id){
+    var p = findPlace(id);
+    if (!p) return;
+    var sheet = openSheet({ title:'', leftLabel:'‹ 목록', body:'' });
+    sheet.dataset.detail = id;
+    fillDetail(sheet, p);
+    sheet.addEventListener('click', function(e){
+      var b = e.target.closest('[data-act],[data-view]');
+      if (!b) return;
+      var cur = findPlace(id);
+      if (b.dataset.act === 'close') sheet.close();
+      else if (!cur) sheet.close();
+      else if (b.dataset.act === 'edit') openEdit(id);
+      else if (b.dataset.act === 'delete') {
+        if (!confirm('‘' + (cur.name || '이름 없는 가게') + '’ 기록을 지울까요?')) return;
+        removePlace(id);
+        sheet.close();
+      }
+      else if (b.dataset.view != null) openViewer(cur.photos, Number(b.dataset.view));
+    });
+  }
+
+  var pendingDelete = null;
+  function finishPendingDelete(){
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    var ids = pendingDelete.place.photos;
+    pendingDelete = null;
+    // 다른 기록이 같은 사진을 쓰지 않을 때만 지운다
+    photoDel(ids.filter(function(pid){ return !state.places.some(function(p){ return p.photos.indexOf(pid) !== -1; }); }));
+  }
+  function removePlace(id){
+    finishPendingDelete();
+    var idx = -1;
+    state.places.forEach(function(p, i){ if (p.id === id) idx = i; });
+    if (idx === -1) return;
+    var place = state.places.splice(idx, 1)[0];
+    save(); render();
+    pendingDelete = { place:place, index:idx, timer:setTimeout(finishPendingDelete, 7000) };
+    toast('기록을 지웠어요', '되돌리기', function(){
+      if (!pendingDelete || pendingDelete.place !== place) return;
+      clearTimeout(pendingDelete.timer);
+      state.places.splice(Math.min(pendingDelete.index, state.places.length), 0, place);
+      pendingDelete = null;
+      save(); render();
+      toast('되돌렸어요');
+    }, 7000);
+  }
+
+  function openViewer(ids, start){
+    var el = document.createElement('div');
+    el.className = 'fd-viewer';
+    el.innerHTML = '<div class="fd-viewer-track">' + ids.map(function(id){
+      return '<div><img data-pid="' + esc(id) + '" data-kind="full" alt=""></div>';
+    }).join('') + '</div><div class="fd-viewer-count"></div><button class="fd-viewer-close" aria-label="닫기">✕</button>';
+    document.body.appendChild(el);
+    lock();
+    hydrateImgs(el);
+    var track = $('.fd-viewer-track', el), count = $('.fd-viewer-count', el);
+    function upd(){ count.textContent = ids.length > 1 ? (Math.round(track.scrollLeft / track.clientWidth) + 1) + ' / ' + ids.length : ''; }
+    track.scrollLeft = start * track.clientWidth;
+    upd();
+    track.addEventListener('scroll', upd, { passive:true });
+    $('.fd-viewer-close', el).addEventListener('click', function(){ el.remove(); unlock(); });
+  }
+
+  // ---------- 쓰기·고치기 ----------
+  function newMenu(){ return { id:uid(), name:'', rating:0, note:'' }; }
+  function starsIn(v, cls){
+    var s = '';
+    for (var i = 1; i <= 5; i++) s += '<button type="button" data-star="' + i + '"' + (i <= v ? ' class="on"' : '') + ' aria-label="' + i + '점">★</button>';
+    return '<div class="fd-stars-in ' + (cls || '') + '">' + s + '</div>';
+  }
+  function menuEditHTML(m){
+    return '<div class="fd-menu-edit" data-mid="' + esc(m.id) + '">' +
+      '<div class="fd-row"><input class="fd-input" data-mf="name" value="' + esc(m.name) + '" placeholder="메뉴 이름 (예: 트러플 크림 파스타)" maxlength="40" enterkeyhint="next">' +
+      '<button type="button" class="fd-menu-del" data-act="del-menu" aria-label="메뉴 빼기">✕</button></div>' +
+      '<div class="fd-row">' + starsIn(m.rating, 'sm') +
+      '<input class="fd-input" data-mf="note" value="' + esc(m.note) + '" placeholder="이 메뉴 한마디" maxlength="40" enterkeyhint="done"></div>' +
+    '</div>';
+  }
+  function photoTileHTML(id, i){
+    return '<div class="fd-photo-tile" data-photo="' + esc(id) + '"><img data-pid="' + esc(id) + '" alt="">' +
+      (i === 0 ? '<span class="fd-cover">대표</span>' : '') +
+      '<button type="button" class="fd-photo-del" data-act="del-photo" aria-label="사진 빼기">✕</button></div>';
+  }
+  function editHTML(d){
+    return '' +
+      '<div class="fd-field" style="margin-top:8px"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
+        '<div class="fd-photos" id="fd-ed-photos"></div></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
+        '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off"></div>' +
+      '<div class="fd-field"><label class="fd-label">종류</label><div class="fd-cat-pick" id="fd-ed-cat">' +
+        CATS.map(function(c){
+          return '<button type="button" class="fd-chip' + (d.category === c.name ? ' on' : '') + '" data-pick-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
+        }).join('') + '</div></div>' +
+      '<div class="fd-field fd-row">' +
+        '<div><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+        '<div><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
+      '</div>' +
+      '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
+        '<span class="fd-rate-word">' + esc(RATE_WORDS[d.rating]) + '</span></div></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-one">한줄평</label>' +
+        '<input class="fd-input" id="fd-ed-one" data-f="oneLiner" value="' + esc(d.oneLiner) + '" placeholder="한마디로 어땠나요?" maxlength="60" autocomplete="off">' +
+        '<div class="fd-counter" id="fd-ed-one-count">' + d.oneLiner.length + ' / 60</div></div>' +
+      '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점·한마디도 남길 수 있어요</small></label>' +
+        '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">＋ 메뉴 추가</button></div>' +
+      '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div class="fd-toggle" id="fd-ed-revisit">' +
+        '<button type="button" data-revisit="yes"' + (d.revisit === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
+        '<button type="button" data-revisit="no"' + (d.revisit === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모 <small>가격, 웨이팅, 같이 간 사람…</small></label>' +
+        '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
+  }
+
+  function openEdit(id){
+    var src = id ? findPlace(id) : null;
+    var draft = src ? clone(src) : {
+      id:uid(), name:'', category:'', area:'', visitedAt:today(), rating:0, oneLiner:'',
+      menus:[], photos:[], revisit:'', memo:'', createdAt:'', updatedAt:''
+    };
+    if (!draft.menus.length) draft.menus.push(newMenu());
+    var startPhotos = draft.photos.slice();
+    var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
+    var busy = 0;
+    var dirty = false;
+
+    var sheet = openSheet({
+      title: src ? '기록 고치기' : '새 맛집 기록',
+      leftLabel: '취소',
+      right: '<button class="fd-text-btn strong" data-act="save">저장</button>',
+      body: editHTML(draft)
+    });
+    var photosEl = $('#fd-ed-photos', sheet), menusEl = $('#fd-ed-menus', sheet);
+
+    function drawPhotos(){
+      photosEl.innerHTML = draft.photos.map(photoTileHTML).join('') +
+        (draft.photos.length + busy < MAX_PHOTOS
+          ? '<button type="button" class="fd-photo-add fd-press" data-act="add-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>' +
+            (draft.photos.length ? draft.photos.length + ' / ' + MAX_PHOTOS : '사진 추가') + '</button>'
+          : '');
+      for (var i = 0; i < busy; i++) photosEl.insertAdjacentHTML('beforeend', '<div class="fd-photo-tile"><div class="fd-spinner"></div></div>');
+      hydrateImgs(photosEl);
+    }
+    drawPhotos();
+
+    function menuOf(el){
+      var box = el.closest('[data-mid]');
+      if (!box) return null;
+      for (var i = 0; i < draft.menus.length; i++) if (draft.menus[i].id === box.dataset.mid) return draft.menus[i];
+      return null;
+    }
+    function setStars(wrap, v){
+      $all('button', wrap).forEach(function(b){
+        var n = Number(b.dataset.star);
+        b.classList.toggle('on', n <= v);
+        b.classList.remove('pop');
+        if (n === v) { void b.offsetWidth; b.classList.add('pop'); }
+      });
+    }
+
+    sheet.addEventListener('input', function(e){
+      var t = e.target;
+      dirty = true;
+      if (t.dataset.f) {
+        draft[t.dataset.f] = t.value;
+        if (t.dataset.f === 'oneLiner') $('#fd-ed-one-count', sheet).textContent = t.value.length + ' / 60';
+      } else if (t.dataset.mf) {
+        var m = menuOf(t);
+        if (m) m[t.dataset.mf] = t.value;
+      }
+    });
+    sheet.addEventListener('keydown', function(e){
+      // 메뉴 이름에서 완료를 누르면 한마디 칸으로
+      if (e.key === 'Enter' && e.target.dataset && e.target.dataset.mf === 'name') {
+        e.preventDefault();
+        var note = $('[data-mf="note"]', e.target.closest('[data-mid]'));
+        if (note) note.focus();
+      }
+    });
+
+    sheet.addEventListener('click', function(e){
+      var t = e.target;
+      var star = t.closest('[data-star]');
+      if (star) {
+        var v = Number(star.dataset.star), wrap = star.parentNode, m = menuOf(star);
+        dirty = true;
+        if (m) {
+          m.rating = m.rating === v ? 0 : v;
+          setStars(wrap, m.rating);
+        } else {
+          draft.rating = v;
+          setStars(wrap, v);
+          $('.fd-rate-word', sheet).textContent = RATE_WORDS[v];
+        }
+        return;
+      }
+      var cat = t.closest('[data-pick-cat]');
+      if (cat) {
+        dirty = true;
+        draft.category = draft.category === cat.dataset.pickCat ? '' : cat.dataset.pickCat;
+        $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === draft.category); });
+        return;
+      }
+      var rv = t.closest('[data-revisit]');
+      if (rv) {
+        dirty = true;
+        draft.revisit = draft.revisit === rv.dataset.revisit ? '' : rv.dataset.revisit;
+        $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === draft.revisit); });
+        return;
+      }
+      var act = t.closest('[data-act]');
+      if (!act) {
+        var tile = t.closest('[data-photo]');
+        if (tile) {
+          var idx = draft.photos.indexOf(tile.dataset.photo);
+          if (idx > 0) { dirty = true; draft.photos.unshift(draft.photos.splice(idx, 1)[0]); drawPhotos(); }
+        }
+        return;
+      }
+      switch (act.dataset.act) {
+        case 'close': cancel(); break;
+        case 'save': commit(); break;
+        case 'add-menu':
+          dirty = true;
+          var m2 = newMenu();
+          draft.menus.push(m2);
+          menusEl.insertAdjacentHTML('beforeend', menuEditHTML(m2));
+          $('[data-mid="' + m2.id + '"] [data-mf="name"]', menusEl).focus();
+          break;
+        case 'del-menu':
+          dirty = true;
+          var box = act.closest('[data-mid]');
+          draft.menus = draft.menus.filter(function(x){ return x.id !== box.dataset.mid; });
+          box.remove();
+          break;
+        case 'add-photo':
+          pickPhotos();
+          break;
+        case 'del-photo':
+          dirty = true;
+          var pid = act.closest('[data-photo]').dataset.photo;
+          draft.photos = draft.photos.filter(function(x){ return x !== pid; });
+          drawPhotos();
+          break;
+      }
+    });
+
+    function pickPhotos(){
+      var input = $('#fd-photo-input');
+      input.value = '';
+      input.onchange = function(){
+        var files = Array.prototype.slice.call(input.files || []);
+        var room = MAX_PHOTOS - draft.photos.length - busy;
+        if (files.length > room) toast('사진은 한 기록에 ' + MAX_PHOTOS + '장까지 넣을 수 있어요');
+        files = files.slice(0, Math.max(0, room));
+        if (!files.length) return;
+        dirty = true;
+        busy += files.length;
+        drawPhotos();
+        files.reduce(function(chain, f){
+          return chain.then(function(){
+            return processPhoto(f).then(function(rec){
+              return photoPut(rec).then(function(){
+                if (sheet.closed) { photoDel([rec.id]); return; }
+                added.push(rec.id);
+                draft.photos.push(rec.id);
+              });
+            }).catch(function(){ toast('사진 한 장을 읽지 못했어요'); })
+              .then(function(){ busy--; if (!sheet.closed) drawPhotos(); });
+          });
+        }, Promise.resolve());
+        if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){});
+      };
+      input.click();
+    }
+
+    function cancel(){
+      if (dirty && !confirm(src ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 기록을 버릴까요?')) return;
+      photoDel(added);
+      sheet.close();
+    }
+    function commit(){
+      if (busy) { toast('사진을 넣는 중이에요. 잠시만요'); return; }
+      draft.name = draft.name.trim();
+      if (!draft.name) {
+        toast('가게 이름을 적어 주세요');
+        $('#fd-ed-name', sheet).focus();
+        return;
+      }
+      draft.area = draft.area.trim();
+      draft.oneLiner = draft.oneLiner.trim();
+      draft.memo = draft.memo.replace(/\s+$/, '');
+      draft.menus = draft.menus
+        .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
+        .filter(function(m){ return m.name || m.note || m.rating; });
+      var now = new Date().toISOString();
+      draft.updatedAt = now;
+      if (!draft.createdAt) draft.createdAt = now;
+      var place = normalizePlace(draft);
+      var cur = findPlace(place.id);
+      if (cur) state.places[state.places.indexOf(cur)] = place;
+      else state.places.push(place);
+      if (!save()) return;
+      // 빠진 사진은 저장이 끝난 뒤에 지운다
+      photoDel(startPhotos.concat(added).filter(function(x){ return place.photos.indexOf(x) === -1; }));
+      render();
+      sheet.close();
+      var detail = $('.fd-sheet[data-detail="' + place.id + '"]');
+      if (detail) fillDetail(detail, place);
+      toast(cur ? '고쳤어요' : '맛집을 기록했어요 🍽️');
+    }
+
+    if (!src) setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
+  }
+
+  // ---------- 백업 ----------
+  function blobToDataUrl(b){
+    return new Promise(function(resolve, reject){
+      var r = new FileReader();
+      r.onload = function(){ resolve(r.result); };
+      r.onerror = function(){ reject(r.error); };
+      r.readAsDataURL(b);
+    });
+  }
+  function exportBackup(){
+    finishPendingDelete();
+    toast('백업 파일을 만드는 중…');
+    var ids = [];
+    state.places.forEach(function(p){ p.photos.forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    var photos = {};
+    ids.reduce(function(chain, id){
+      return chain.then(function(){
+        return photoGet(id).then(function(rec){
+          if (!rec) return;
+          return Promise.all([blobToDataUrl(rec.full), blobToDataUrl(rec.thumb)]).then(function(u){
+            photos[id] = { full:u[0], thumb:u[1] };
+          });
+        });
+      });
+    }, Promise.resolve()).then(function(){
+      var json = JSON.stringify({ app:'food-diary', version:1, exportedAt:new Date().toISOString(), places:state.places, photos:photos });
+      var name = '맛집기록서-' + today() + '.json';
+      var file = new File([json], name, { type:'application/json' });
+      var touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+      if (touch && navigator.canShare && navigator.canShare({ files:[file] })) {
+        return navigator.share({ files:[file] }).then(function(){ toast('백업 파일을 보냈어요'); }, function(err){
+          if (err && err.name !== 'AbortError') download(file, name);
+        });
+      }
+      download(file, name);
+    }).catch(function(){ toast('백업 파일을 만들지 못했어요'); });
+  }
+  function download(file, name){
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+    toast('백업 파일을 저장했어요');
+  }
+  function importBackup(){
+    var input = $('#fd-import-input');
+    input.value = '';
+    input.onchange = function(){
+      var f = input.files && input.files[0];
+      if (!f) return;
+      f.text().then(function(text){
+        var data;
+        try { data = JSON.parse(text); } catch (e) { toast('읽을 수 없는 파일이에요'); return; }
+        if (!data || data.app !== 'food-diary' || !Array.isArray(data.places)) { toast('맛집 기록서 백업 파일이 아니에요'); return; }
+        var incoming = data.places.map(normalizePlace);
+        var fresh = 0, newer = 0;
+        incoming.forEach(function(p){
+          var cur = findPlace(p.id);
+          if (!cur) fresh++;
+          else if (cmp(p.updatedAt, cur.updatedAt) > 0) newer++;
+        });
+        if (!fresh && !newer) { toast('이미 다 들어 있는 기록이에요'); return; }
+        if (!confirm('새 기록 ' + fresh + '개' + (newer ? ', 더 최근에 고친 기록 ' + newer + '개' : '') +
+          '를 합칠까요?\n지금 있는 기록은 지워지지 않아요.')) return;
+        finishPendingDelete();
+        var photos = data.photos && typeof data.photos === 'object' ? data.photos : {};
+        var need = [];
+        incoming.forEach(function(p){
+          var cur = findPlace(p.id);
+          if (!cur || cmp(p.updatedAt, cur.updatedAt) > 0) p.photos.forEach(function(id){ if (photos[id]) need.push(id); });
+        });
+        toast('불러오는 중…');
+        need.reduce(function(chain, id){
+          return chain.then(function(){
+            return photoGet(id).then(function(have){
+              if (have) return;
+              var ph = photos[id];
+              return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(ph.thumb || ph.full).then(function(r){ return r.blob(); })])
+                .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); });
+            }).catch(function(){});
+          });
+        }, Promise.resolve()).then(function(){
+          incoming.forEach(function(p){
+            var cur = findPlace(p.id);
+            if (!cur) state.places.push(p);
+            else if (cmp(p.updatedAt, cur.updatedAt) > 0) state.places[state.places.indexOf(cur)] = p;
+          });
+          save(); render();
+          toast('기록 ' + (fresh + newer) + '개를 합쳤어요');
+        });
+      }).catch(function(){ toast('파일을 읽지 못했어요'); });
+    };
+    input.click();
+  }
+  function openMenu(){
+    var n = state.places.length;
+    var est = navigator.storage && navigator.storage.estimate ? navigator.storage.estimate() : Promise.resolve(null);
+    est.catch(function(){ return null; }).then(function(e){
+      var used = e && e.usage ? ' · 사용 중 ' + (e.usage / 1048576).toFixed(1) + 'MB' : '';
+      openActionSheet('백업', '기록과 사진은 이 기기에만 저장돼요. 기기를 바꾸거나 정리하기 전에 백업 파일을 남겨 두세요.' + used, [
+        { icon:'📦', label:'백업 파일 만들기', sub:'기록 ' + n + '개와 사진을 파일 하나로', run:exportBackup },
+        { icon:'📥', label:'백업 파일 불러오기', sub:'지금 기록에 합쳐요 (지워지지 않아요)', run:importBackup }
+      ]);
+    });
+  }
+
+  // ---------- 알림 ----------
+  var toastTimer = null;
+  function toast(msg, actionLabel, onAction, ms){
+    var el = $('#fd-toast'), btn = $('button', el);
+    $('span', el).textContent = msg;
+    btn.hidden = !actionLabel;
+    btn.textContent = actionLabel || '';
+    btn.onclick = function(){ el.classList.remove('show'); if (onAction) onAction(); };
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, ms || 2200);
+  }
+
+  // ---------- 이벤트 ----------
+  var qInput = $('#fd-q'), qClear = $('#fd-q-clear');
+  qInput.addEventListener('input', function(){
+    ui.q = qInput.value.trim();
+    qClear.hidden = !qInput.value;
+    renderList();
+  });
+  qClear.addEventListener('click', function(e){
+    e.preventDefault();
+    qInput.value = ''; ui.q = ''; qClear.hidden = true;
+    renderList();
+  });
+  $('#fd-cats').addEventListener('click', function(e){
+    var b = e.target.closest('[data-cat]');
+    if (!b) return;
+    ui.cat = b.dataset.cat;
+    renderCats(); renderList();
+  });
+  $('#fd-sort').addEventListener('click', function(e){
+    var b = e.target.closest('[data-sort]');
+    if (!b) return;
+    ui.sort = b.dataset.sort;
+    renderList();
+  });
+  $('#fd-list').addEventListener('click', function(e){
+    var c = e.target.closest('[data-open]');
+    if (c) openDetail(c.dataset.open);
+  });
+  $('#fd-add').addEventListener('click', function(){ openEdit(null); });
+  $('#fd-menu-btn').addEventListener('click', openMenu);
+  window.addEventListener('pagehide', finishPendingDelete);
+
+  render();
+})();
+</script>
+</body>
+</html>
