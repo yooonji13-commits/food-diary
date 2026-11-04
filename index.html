@@ -98,6 +98,40 @@
 
   .fd-sortbar{ display:flex; align-items:center; justify-content:space-between; margin:14px 2px 10px; }
   .fd-count{ font-size:13px; color:var(--muted); }
+  .fd-sortbar-left{ display:flex; align-items:center; gap:8px; }
+  .fd-map-btn{ height:32px; padding:0 12px; border-radius:var(--radius-pill); background:var(--surface); border:1px solid var(--line); font-size:13px; font-weight:600; color:var(--accent); }
+
+  /* ---- map ---- */
+  .fd-sheet.fd-sheet-map .fd-sheet-body{ padding:0; overflow:hidden; position:relative; }
+  .fd-sheet.fd-sheet-map .fd-sheet-inner{ max-width:none; height:100%; }
+  .fd-map-wrap{ position:relative; height:100%; background:var(--surface-alt); }
+  .fd-map{ position:absolute; inset:0; }
+  .fd-map-state{ position:absolute; left:16px; right:16px; top:16px; z-index:3; }
+  .fd-map-legend{
+    position:absolute; left:12px; top:12px; z-index:2; display:flex; gap:10px; align-items:center;
+    background:rgba(255,254,250,.94); border-radius:var(--radius-pill); padding:6px 12px; font-size:12px; color:var(--ink-soft); box-shadow:var(--shadow);
+  }
+  .fd-map-legend i{ display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:4px; vertical-align:-1px; }
+  .fd-map-legend .v{ background:var(--accent); }
+  .fd-map-legend .w{ background:#FFFEFA; border:2px solid #8FB59A; }
+  .fd-map-note{
+    position:absolute; left:12px; right:12px; top:52px; z-index:2; text-align:center; pointer-events:none;
+  }
+  .fd-map-note span{ display:inline-block; background:rgba(59,46,37,.78); color:#fff; font-size:12.5px; border-radius:var(--radius-pill); padding:5px 12px; }
+  .fd-pin{
+    display:grid; place-items:center; width:40px; height:40px; border-radius:50% 50% 50% 6px; transform:rotate(-45deg);
+    background:var(--accent); border:2.5px solid #FFFEFA; box-shadow:0 3px 8px rgba(80,55,30,.3); cursor:pointer; padding:0;
+  }
+  .fd-pin span{ transform:rotate(45deg); font-size:19px; line-height:1; }
+  .fd-pin.wish{ background:#FFFEFA; border-color:#8FB59A; border-width:3px; }
+  .fd-pin.on{ outline:3px solid rgba(232,168,58,.7); }
+  .fd-map-card{
+    position:absolute; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:3;
+    display:flex; gap:12px; align-items:center; text-align:left; width:auto;
+    background:var(--surface); border-radius:var(--radius-lg); padding:10px; box-shadow:0 6px 20px rgba(80,55,30,.18); animation:fd-rise .2s ease both;
+  }
+  .fd-map-card .fd-thumb{ width:64px; height:64px; font-size:30px; }
+  .fd-map-card .fd-go{ flex:none; color:var(--accent); font-size:20px; padding:0 4px; }
   .fd-seg{ display:flex; background:var(--surface-alt); border-radius:var(--radius-pill); padding:3px; }
   .fd-seg button{ font-size:13px; padding:6px 12px; border-radius:var(--radius-pill); color:var(--muted); }
   .fd-seg button.on{ background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
@@ -402,7 +436,10 @@
   </label>
   <div class="fd-chips" id="fd-cats"></div>
   <div class="fd-sortbar">
-    <span class="fd-count" id="fd-count"></span>
+    <div class="fd-sortbar-left">
+      <span class="fd-count" id="fd-count"></span>
+      <button type="button" class="fd-map-btn fd-press" id="fd-map-btn">🗺️ 지도</button>
+    </div>
     <div class="fd-seg" id="fd-sort">
       <button data-sort="recent">최근 방문</button>
       <button data-sort="rating">별점 높은</button>
@@ -1355,6 +1392,111 @@
     return '<div class="fd-loc-notice"><b>🗺️ 지도를 쓰려면 인터넷 연결과 카카오 키가 필요해요</b><p>' + esc(sub) + ' 위치 없이도 기록은 그대로 저장돼요.</p>' +
       (retry && why !== 'nokey' ? '<button type="button" class="fd-mini-btn fd-press" data-loc-act="retry">다시 해 보기</button>' : '') + '</div>';
   }
+  // ---------- 지도 ----------
+  // 다녀온 곳과 가고 싶은 곳을 함께 핀으로 보여 준다. 지금 걸린 종류·검색어를 그대로 따른다
+  function hasPoint(x){
+    var l = x.location;
+    return !!(l && typeof l.lat === 'number' && typeof l.lng === 'number' && isFinite(l.lat) && isFinite(l.lng));
+  }
+  function mapItems(){
+    var items = [];
+    visible().forEach(function(p){ items.push({ kind:'place', id:p.id, it:p }); });
+    visibleWishes().forEach(function(w){ items.push({ kind:'wish', id:w.id, it:w }); });
+    return items;
+  }
+  function mapCardHTML(x){
+    var it = x.it, thumb = catEmoji(it.category), sub = '';
+    if (x.kind === 'place') {
+      var vs = sortedVisits(it);
+      for (var k = 0; k < vs.length; k++) if (vs[k].photos.length) { thumb = '<img data-pid="' + esc(vs[k].photos[0]) + '" alt="">'; break; }
+      var r = listRating(it);
+      sub = (r ? starsRO(r) + ' ' : '') + (it.visits.length >= 2 ? '<span class="fd-visit-n">' + it.visits.length + '번 방문</span>' : '');
+    } else {
+      sub = '<span class="fd-link-mark">💭 가고 싶은 곳</span>';
+    }
+    return '<div class="fd-thumb">' + thumb + '</div>' +
+      '<div class="fd-card-body">' +
+        '<div class="fd-card-top"><span class="fd-card-title">' + esc(it.name || '이름 없는 곳') + '</span></div>' +
+        (sub ? '<div class="fd-card-sub">' + sub + '</div>' : '') +
+        (it.location && it.location.address ? '<div class="fd-card-meta">📍 ' + esc(it.location.address) + '</div>' : '') +
+      '</div><span class="fd-go">›</span>';
+  }
+  function openMap(){
+    var sheet = openSheet({ title:'🗺️ 지도',
+      body:'<div class="fd-map-wrap"><div class="fd-map" id="fd-map"></div>' +
+        '<div class="fd-map-legend"><span><i class="v"></i>다녀온 곳</span><span><i class="w"></i>가고 싶은 곳</span></div>' +
+        '<div class="fd-map-note" id="fd-map-note" hidden></div>' +
+        '<div class="fd-map-state" id="fd-map-state" hidden></div>' +
+        '<button type="button" class="fd-map-card fd-press" id="fd-map-card" hidden></button></div>' });
+    sheet.classList.add('fd-sheet-map');
+    var mapEl = $('#fd-map', sheet), stateEl = $('#fd-map-state', sheet), noteEl = $('#fd-map-note', sheet), cardEl = $('#fd-map-card', sheet);
+    var map = null, picked = null, pinEls = [];
+
+    function showState(html){ stateEl.innerHTML = html; stateEl.hidden = !html; }
+    function hideCard(){
+      picked = null; cardEl.hidden = true;
+      pinEls.forEach(function(p){ p.classList.remove('on'); });
+    }
+    function pick(x, pinEl){
+      picked = x;
+      pinEls.forEach(function(p){ p.classList.toggle('on', p === pinEl); });
+      cardEl.innerHTML = mapCardHTML(x);
+      cardEl.hidden = false;
+      hydrateImgs(cardEl);
+    }
+    function draw(kakao){
+      if (sheet.closed) return;
+      var items = mapItems(), shown = items.filter(function(x){ return hasPoint(x.it); });
+      var missing = items.length - shown.length;
+      map = new kakao.maps.Map(mapEl, { center:new kakao.maps.LatLng(37.5665, 126.978), level:8 });
+      kakao.maps.event.addListener(map, 'click', hideCard);
+      var bounds = new kakao.maps.LatLngBounds();
+      shown.forEach(function(x){
+        var pos = new kakao.maps.LatLng(x.it.location.lat, x.it.location.lng);
+        var pin = document.createElement('button');
+        pin.type = 'button';
+        pin.className = 'fd-pin' + (x.kind === 'wish' ? ' wish' : '');
+        pin.setAttribute('aria-label', x.it.name || '이름 없는 곳');
+        pin.innerHTML = '<span>' + catEmoji(x.it.category) + '</span>';
+        pin.addEventListener('click', function(e){ e.stopPropagation(); pick(x, pin); });
+        pinEls.push(pin);
+        new kakao.maps.CustomOverlay({ map:map, position:pos, content:pin, xAnchor:0.5, yAnchor:1.1, clickable:true });
+        bounds.extend(pos);
+      });
+      if (shown.length === 1) { map.setLevel(4); map.setCenter(bounds.getSouthWest()); }
+      else if (shown.length > 1) map.setBounds(bounds, 60, 40, 120, 40);
+      var notes = [];
+      if (!shown.length) notes.push('지도에 보일 곳이 없어요 🥲');
+      if (missing) notes.push('위치가 없는 ' + missing + '곳은 지도에 안 나와요');
+      noteEl.innerHTML = notes.map(function(n){ return '<span>' + esc(n) + '</span>'; }).join('<br>');
+      noteEl.hidden = !notes.length;
+    }
+    function start(){
+      showState('<div class="fd-loc-notice"><b>🗺️ 카카오 지도를 불러오는 중…</b></div>');
+      loadKakao().then(function(kakao){
+        if (sheet.closed) return;
+        showState('');
+        // 시트가 다 올라온 뒤 크기를 재야 지도가 제대로 그려진다
+        setTimeout(function(){ draw(kakao); }, 300);
+      }, function(err){
+        if (sheet.closed) return;
+        showState(kakaoNoticeHTML(err, true));
+      });
+    }
+
+    sheet.addEventListener('click', function(e){
+      var b = e.target.closest('[data-act],[data-loc-act]');
+      if (b && b.dataset.act === 'close') { sheet.close(); return; }
+      if (b && b.dataset.locAct === 'retry') { start(); return; }
+      if (e.target.closest('#fd-map-card') && picked) {
+        var x = picked;
+        hideCard();
+        if (x.kind === 'place') openDetail(x.id); else openWishDetail(x.id);
+      }
+    });
+    start();
+  }
+
   // 카카오 분류 → 앱 종류. 위에서부터 보고 처음 맞는 것. 아무것도 맞지 않으면 ''
   function kakaoCategory(categoryName, groupCode){
     var name = typeof categoryName === 'string' ? categoryName : '';
@@ -2556,6 +2698,7 @@
     else openVisitForm({ mode:'new' });
   });
   $('#fd-menu-btn').addEventListener('click', openMenu);
+  $('#fd-map-btn').addEventListener('click', openMap);
   window.addEventListener('pagehide', finishPendingDelete);
 
   render();
