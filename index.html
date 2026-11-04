@@ -406,7 +406,7 @@
 <div class="fd-app">
   <header class="fd-head">
     <div>
-      <h1>맛집 기록서 <span class="fd-h1-emoji">🍙</span></h1>
+      <h1>먹보일기 <span class="fd-h1-emoji">🍙</span></h1>
       <p class="fd-sub" id="fd-stats"></p>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
@@ -2518,7 +2518,7 @@
       });
     }, Promise.resolve()).then(function(){
       var json = JSON.stringify({ app:'food-diary', version:2, exportedAt:new Date().toISOString(), places:state.places, wishes:state.wishes, photos:photos });
-      var name = '맛집기록서-' + today() + '.json';
+      var name = '먹보일기-' + today() + '.json';
       var file = new File([json], name, { type:'application/json' });
       var coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
       if (coarse && navigator.canShare && navigator.canShare({ files:[file] })) {
@@ -2571,7 +2571,7 @@
         var inc = readBackup(data);
         if (!inc) {
           toast(data && data.app === 'food-diary' && typeof data.version === 'number' && data.version > 2
-            ? '더 새 버전에서 만든 백업이라 불러올 수 없어요' : '맛집 기록서 백업 파일이 아니에요');
+            ? '더 새 버전에서 만든 백업이라 불러올 수 없어요' : '먹보일기 백업 파일이 아니에요');
           return;
         }
         // 지우기 되돌리기가 남아 있으면 먼저 끝낸다 (되돌리기와 불러오기가 겹치면 같은 가게가 둘이 된다)
