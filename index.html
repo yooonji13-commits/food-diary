@@ -456,7 +456,8 @@
   var V1_VISIT_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
   function placeFromV1(r){
     r = (r && typeof r === 'object') ? r : {};
-    var id = typeof r.id === 'string' && r.id ? r.id : uid();
+    // 숫자 id도 문자열로 바꿔 같은 값을 쓴다. id가 정말 없을 때만 새로 만든다
+    var id = (typeof r.id === 'string' && r.id) || (typeof r.id === 'number' && isFinite(r.id)) ? String(r.id) : uid();
     var place = {};
     // 1판에서 모르는 필드는 가게 쪽에 그대로 옮겨 둔다
     Object.keys(r).forEach(function(k){ if (V1_VISIT_FIELDS.indexOf(k) === -1) place[k] = r[k]; });
@@ -531,8 +532,10 @@
     places.forEach(function(p){ placePhotos(p).forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
     return ids;
   }
+  // 되돌리기를 기다리는 가게의 사진도 쓰는 중으로 본다 (되돌렸을 때 사진이 남아 있어야 한다)
   function photoInUse(pid){
-    return state.places.some(function(p){ return p.visits.some(function(v){ return v.photos.indexOf(pid) !== -1; }); });
+    var places = pendingDelete ? state.places.concat([pendingDelete.place]) : state.places;
+    return places.some(function(p){ return p.visits.some(function(v){ return v.photos.indexOf(pid) !== -1; }); });
   }
   // 방문 하나를 바꾸면 그 방문과 가게의 updatedAt을 함께 올린다
   function touch(place, visit){
@@ -563,14 +566,15 @@
       }
       var lp = places[idx];
       var incLater = cmp(ip.updatedAt, lp.updatedAt) > 0;
-      if (incLater) c.newer++;
+      var replaced = incLater;   // 가게 필드나 방문 중 하나라도 더 최근 것으로 바뀌면 가게 하나로 센다
       var visits = lp.visits.slice();
       ip.visits.forEach(function(iv){
         var j = -1;
         visits.forEach(function(v, k){ if (v.id === iv.id) j = k; });
         if (j === -1) { visits.push(clone(iv)); c.newVisits++; }
-        else if (cmp(iv.updatedAt, visits[j].updatedAt) > 0) { visits[j] = clone(iv); c.newer++; }
+        else if (cmp(iv.updatedAt, visits[j].updatedAt) > 0) { visits[j] = clone(iv); replaced = true; }
       });
+      if (replaced) c.newer++;
       var base = incLater ? clone(ip) : lp;
       base.links = union(lp.links, ip.links);
       base.fromWishIds = union(lp.fromWishIds, ip.fromWishIds);
