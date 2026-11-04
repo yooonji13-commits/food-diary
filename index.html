@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>맛집 기록서</title>
 <meta name="description" content="사진, 먹은 메뉴, 한줄평, 별점으로 남기는 나만의 맛집 기록">
-<meta name="theme-color" content="#FFF8F1">
+<meta name="theme-color" content="#FFFBF2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,23 +18,25 @@
   html,body{ margin:0; padding:0; }
   :root{
     color-scheme:light;
-    --bg:#FFF8F1;
-    --surface:#FFFFFF;
-    --surface-alt:#F7EEE4;
-    --ink:#2B211A;
-    --ink-soft:#5C4C40;
-    --muted:#A08E80;
-    --line:#F0E3D5;
-    --accent:#FF6A3D;
+    --bg:#FFFBF2;
+    --surface:#FFFEFA;
+    --surface-alt:#F5ECDF;
+    --ink:#3B2E25;
+    --ink-soft:#6B5A4C;
+    --muted:#A39181;
+    --line:#EFE4D4;
+    --accent:#A26B3A;
     --accent-ink:#FFFFFF;
-    --accent-soft:#FFEDE3;
-    --star:#FFB21E;
-    --star-off:#EADCCD;
-    --danger:#E5484D;
-    --radius-lg:20px;
-    --radius-md:14px;
-    --radius-sm:10px;
-    --shadow:0 1px 2px rgba(90,50,20,.05), 0 6px 18px rgba(90,50,20,.06);
+    --accent-soft:#F6EADB;
+    --accent-shadow:rgba(162,107,58,.28);
+    --star:#E8A83A;
+    --star-off:#E9DECF;
+    --danger:#CC5F52;
+    --radius-lg:26px;
+    --radius-md:18px;
+    --radius-sm:14px;
+    --radius-pill:999px;
+    --shadow:0 1px 2px rgba(120,90,50,.04), 0 6px 16px rgba(120,90,50,.05);
     --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Segoe UI",Roboto,"Noto Sans KR",sans-serif;
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -64,6 +66,7 @@
   }
   .fd-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
   .fd-head h1{ margin:0; font-size:26px; letter-spacing:-.5px; font-weight:800; }
+  .fd-h1-emoji{ display:inline-block; font-size:22px; transform:rotate(-8deg); }
   .fd-sub{ margin:2px 0 0; color:var(--muted); font-size:13.5px; }
   .fd-icon-btn{
     width:40px; height:40px; border-radius:50%; background:var(--surface);
@@ -73,7 +76,7 @@
 
   .fd-search{
     margin-top:16px; display:flex; align-items:center; gap:8px;
-    background:var(--surface); border-radius:var(--radius-md); padding:0 14px; height:46px;
+    background:var(--surface); border-radius:var(--radius-pill); padding:0 14px; height:46px;
     box-shadow:var(--shadow);
   }
   .fd-search svg{ width:18px; height:18px; color:var(--muted); flex:none; }
@@ -88,15 +91,15 @@
   }
   .fd-chips::-webkit-scrollbar{ display:none; }
   .fd-chip{
-    flex:none; height:34px; padding:0 13px; border-radius:17px; background:var(--surface);
+    flex:none; height:34px; padding:0 13px; border-radius:var(--radius-pill); background:var(--surface);
     border:1px solid var(--line); font-size:14px; color:var(--ink-soft); white-space:nowrap;
   }
-  .fd-chip.on{ background:var(--ink); border-color:var(--ink); color:#fff; font-weight:600; }
+  .fd-chip.on{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
 
   .fd-sortbar{ display:flex; align-items:center; justify-content:space-between; margin:14px 2px 10px; }
   .fd-count{ font-size:13px; color:var(--muted); }
-  .fd-seg{ display:flex; background:var(--surface-alt); border-radius:10px; padding:3px; }
-  .fd-seg button{ font-size:13px; padding:5px 10px; border-radius:8px; color:var(--muted); }
+  .fd-seg{ display:flex; background:var(--surface-alt); border-radius:var(--radius-pill); padding:3px; }
+  .fd-seg button{ font-size:13px; padding:6px 12px; border-radius:var(--radius-pill); color:var(--muted); }
   .fd-seg button.on{ background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
   /* ---- list ---- */
@@ -112,19 +115,19 @@
   .fd-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fd-thumb-count{
     position:absolute; right:5px; bottom:5px; font-size:11px; font-weight:600; color:#fff;
-    background:rgba(0,0,0,.45); border-radius:8px; padding:1px 6px;
+    background:rgba(59,46,37,.5); border-radius:var(--radius-pill); padding:1px 7px;
   }
   .fd-card-body{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .fd-card-top{ display:flex; align-items:center; gap:6px; }
   .fd-card-title{ font-weight:700; font-size:16.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .fd-again{ flex:none; font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:1px 6px; }
+  .fd-again{ flex:none; font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:var(--radius-pill); padding:2px 8px; }
   .fd-card-meta{ font-size:12.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .fd-card-quote{
     font-size:14px; color:var(--ink-soft); margin-top:5px;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:keep-all;
   }
   .fd-menu-chips{ display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
-  .fd-menu-chip{ font-size:12px; background:var(--surface-alt); color:var(--ink-soft); border-radius:6px; padding:2px 7px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-menu-chip{ font-size:12px; background:var(--surface-alt); color:var(--ink-soft); border-radius:var(--radius-pill); padding:3px 9px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .fd-stars-ro{ display:inline-flex; letter-spacing:-1px; color:var(--star-off); font-size:13px; }
   .fd-stars-ro .on{ color:var(--star); }
@@ -137,14 +140,14 @@
 
   .fd-fab{
     position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 20px);
-    height:54px; padding:0 26px; border-radius:27px; background:var(--accent); color:var(--accent-ink);
-    font-weight:700; font-size:16px; box-shadow:0 8px 22px rgba(255,106,61,.38); z-index:10;
+    height:54px; padding:0 26px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:16px; box-shadow:0 8px 22px var(--accent-shadow); z-index:10;
     display:flex; align-items:center; gap:6px; white-space:nowrap;
   }
   .fd-fab:active{ transform:translateX(-50%) scale(.96); }
 
   /* ---- sheets ---- */
-  .fd-backdrop{ position:fixed; inset:0; background:rgba(30,18,10,.35); z-index:20; animation:fd-fade-in .2s ease; }
+  .fd-backdrop{ position:fixed; inset:0; background:rgba(59,46,37,.28); z-index:20; animation:fd-fade-in .2s ease; }
   .fd-sheet{
     position:fixed; inset:0; z-index:21; background:var(--bg); display:flex; flex-direction:column;
     animation:fd-sheet-in .28s cubic-bezier(.2,.8,.2,1);
@@ -156,7 +159,7 @@
     border-bottom:1px solid transparent;
   }
   .fd-sheet-head h2{ margin:0; font-size:16.5px; font-weight:700; flex:1; text-align:center; }
-  .fd-text-btn{ min-width:64px; height:40px; padding:0 10px; font-size:16px; color:var(--ink-soft); border-radius:10px; }
+  .fd-text-btn{ min-width:64px; height:40px; padding:0 10px; font-size:16px; color:var(--ink-soft); border-radius:var(--radius-pill); }
   .fd-text-btn.strong{ color:var(--accent); font-weight:700; }
   .fd-sheet-body{
     flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
@@ -174,7 +177,7 @@
   }
   .fd-textarea{ height:auto; min-height:88px; padding:12px 14px; resize:none; line-height:1.5; }
   .fd-input:focus, .fd-textarea:focus{ border-color:var(--accent); }
-  .fd-input::placeholder, .fd-textarea::placeholder{ color:#C4B4A6; }
+  .fd-input::placeholder, .fd-textarea::placeholder{ color:#C9B9A8; }
   .fd-input.big{ height:54px; font-size:18px; font-weight:700; }
   .fd-counter{ text-align:right; font-size:12px; color:var(--muted); margin-top:4px; }
   .fd-row{ display:flex; gap:8px; }
@@ -184,13 +187,13 @@
   .fd-photos{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
   .fd-photo-tile{ position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface-alt); }
   .fd-photo-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:5px; padding:1px 5px; }
+  .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:var(--radius-pill); padding:1px 7px; }
   .fd-photo-del{
     position:absolute; right:3px; top:3px; width:24px; height:24px; border-radius:50%;
     background:rgba(0,0,0,.55); color:#fff; font-size:13px; line-height:24px; text-align:center;
   }
   .fd-photo-add{
-    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #E2CDB9; background:var(--surface);
+    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #DCC7AE; background:var(--surface);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); font-size:12px;
   }
   .fd-photo-add svg{ width:24px; height:24px; color:var(--accent); }
@@ -217,18 +220,18 @@
   .fd-menu-edit .fd-stars-in{ flex:none; }
   .fd-menu-del{ flex:none !important; width:34px; height:34px; border-radius:50%; color:var(--muted); font-size:15px; }
   .fd-add-line{
-    width:100%; height:46px; border-radius:var(--radius-md); border:1.5px dashed #E2CDB9; color:var(--accent);
+    width:100%; height:48px; border-radius:var(--radius-pill); border:1.5px dashed #DCC7AE; color:var(--accent);
     font-weight:700; font-size:14.5px; background:transparent;
   }
 
   .fd-toggle{ display:flex; gap:8px; }
   .fd-toggle button{
-    flex:1; height:48px; border-radius:var(--radius-md); background:var(--surface); border:1px solid var(--line);
+    flex:1; height:48px; border-radius:var(--radius-pill); background:var(--surface); border:1px solid var(--line);
     font-size:14.5px; color:var(--ink-soft);
   }
   .fd-toggle button.on{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700; }
 
-  .fd-danger-btn{ width:100%; height:48px; margin-top:28px; border-radius:var(--radius-md); color:var(--danger); background:var(--surface); border:1px solid var(--line); font-weight:600; }
+  .fd-danger-btn{ width:100%; height:48px; margin-top:28px; border-radius:var(--radius-pill); color:var(--danger); background:var(--surface); border:1px solid var(--line); font-weight:600; }
 
   /* ---- detail ---- */
   .fd-gallery{ position:relative; margin:4px -16px 0; }
@@ -236,7 +239,7 @@
   .fd-gallery-track::-webkit-scrollbar{ display:none; }
   .fd-gallery-track button{ flex:none; width:100%; aspect-ratio:4/3; scroll-snap-align:center; background:var(--surface-alt); }
   .fd-gallery-track img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(0,0,0,.45); border-radius:10px; padding:2px 9px; pointer-events:none; }
+  .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(59,46,37,.5); border-radius:var(--radius-pill); padding:2px 10px; pointer-events:none; }
   .fd-detail-hero-empty{ margin:4px 0 0; height:130px; border-radius:var(--radius-lg); background:var(--surface-alt); display:grid; place-items:center; font-size:58px; }
   .fd-detail-title{ margin:18px 0 0; font-size:24px; font-weight:800; letter-spacing:-.4px; word-break:keep-all; }
   .fd-detail-meta{ color:var(--muted); font-size:14px; margin-top:4px; }
@@ -245,7 +248,7 @@
     margin-top:16px; background:var(--surface); border-radius:var(--radius-lg); padding:16px 18px; box-shadow:var(--shadow);
     font-size:17px; font-weight:600; line-height:1.5; word-break:keep-all; position:relative;
   }
-  .fd-quote-box::before{ content:"“"; position:absolute; left:10px; top:-8px; font-size:44px; color:var(--accent); opacity:.35; font-family:Georgia,serif; }
+  .fd-quote-box::before{ content:"“"; position:absolute; left:12px; top:-8px; font-size:44px; color:var(--accent); opacity:.3; font-family:Georgia,serif; }
   .fd-section-title{ font-size:14px; font-weight:700; color:var(--ink-soft); margin:24px 2px 8px; }
   .fd-menu-list{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden; }
   .fd-menu-item{ padding:13px 16px; }
@@ -255,7 +258,7 @@
   .fd-menu-item-note{ font-size:14px; color:var(--ink-soft); margin-top:3px; }
   .fd-memo{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:14px 16px; white-space:pre-wrap; word-break:break-word; font-size:14.5px; color:var(--ink-soft); }
   .fd-detail-actions{ display:flex; gap:8px; margin-top:28px; }
-  .fd-detail-actions button{ flex:1; height:50px; border-radius:var(--radius-md); font-weight:700; }
+  .fd-detail-actions button{ flex:1; height:52px; border-radius:var(--radius-pill); font-weight:700; }
   .fd-btn-primary{ background:var(--accent); color:var(--accent-ink); }
   .fd-btn-ghost{ background:var(--surface); border:1px solid var(--line); color:var(--danger); }
 
@@ -270,7 +273,7 @@
 
   /* ---- action sheet ---- */
   .fd-action-sheet{
-    position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--surface); border-radius:22px 22px 0 0;
+    position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--surface); border-radius:var(--radius-lg) var(--radius-lg) 0 0;
     padding:10px 16px calc(env(safe-area-inset-bottom) + 16px); animation:fd-sheet-in .25s cubic-bezier(.2,.8,.2,1);
     max-width:560px; margin:0 auto;
   }
@@ -278,27 +281,27 @@
   .fd-grab{ width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 12px; }
   .fd-action-sheet h3{ margin:0 4px 4px; font-size:17px; }
   .fd-action-sheet p{ margin:0 4px 14px; color:var(--muted); font-size:13px; }
-  .fd-action{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 6px; border-radius:12px; text-align:left; font-size:16px; }
+  .fd-action{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 8px; border-radius:var(--radius-md); text-align:left; font-size:16px; }
   .fd-action:active{ background:var(--surface-alt); }
-  .fd-action span:first-child{ width:38px; height:38px; border-radius:12px; background:var(--accent-soft); display:grid; place-items:center; font-size:19px; flex:none; }
+  .fd-action span:first-child{ width:40px; height:40px; border-radius:50%; background:var(--accent-soft); display:grid; place-items:center; font-size:19px; flex:none; }
   .fd-action small{ display:block; color:var(--muted); font-size:12.5px; }
 
   /* ---- toast ---- */
   .fd-toast{
     position:fixed; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom) + 88px); z-index:50;
-    max-width:420px; margin:0 auto; background:rgba(43,33,26,.94); color:#fff; border-radius:14px;
+    max-width:420px; margin:0 auto; background:rgba(59,46,37,.94); color:#fff; border-radius:var(--radius-pill);
     padding:13px 16px; font-size:14.5px; display:flex; align-items:center; justify-content:space-between; gap:10px;
     opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity .2s ease, transform .2s ease;
   }
   .fd-toast.show{ opacity:1; transform:none; pointer-events:auto; }
-  .fd-toast button{ color:#FFB89E; font-weight:700; flex:none; padding:4px 2px; }
+  .fd-toast button{ color:#F3CC97; font-weight:700; flex:none; padding:4px 2px; }
 </style>
 </head>
 <body>
 <div class="fd-app">
   <header class="fd-head">
     <div>
-      <h1>맛집 기록서</h1>
+      <h1>맛집 기록서 <span class="fd-h1-emoji">🍙</span></h1>
       <p class="fd-sub" id="fd-stats"></p>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
@@ -320,7 +323,7 @@
   </div>
   <main class="fd-list" id="fd-list"></main>
 </div>
-<button class="fd-fab" id="fd-add"><span style="font-size:20px;line-height:1">＋</span> 맛집 기록하기</button>
+<button class="fd-fab" id="fd-add"><span style="font-size:19px;line-height:1">🍴</span> 맛집 기록하기</button>
 <input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
 <input type="file" id="fd-import-input" accept="application/json,.json" hidden>
 <div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
@@ -337,7 +340,7 @@
     { name:'아시안', emoji:'🍜' }, { name:'카페·디저트', emoji:'🍰' }, { name:'술집', emoji:'🍻' },
     { name:'기타', emoji:'🍴' }
   ];
-  var RATE_WORDS = ['별을 눌러요','별로였어요', '그저 그래요', '괜찮았어요', '맛있어요!', '인생 맛집 🔥'];
+  var RATE_WORDS = ['별을 눌러요', '별로였어요 😕', '그저 그래요 😐', '괜찮았어요 🙂', '맛있어요! 😋', '인생 맛집 🔥'];
 
   // ---------- 작은 도구 ----------
   function $(sel, root){ return (root || document).querySelector(sel); }
@@ -584,7 +587,7 @@
     $('#fd-sort').style.visibility = state.places.length ? '' : 'hidden';
     $all('#fd-sort button').forEach(function(b){ b.classList.toggle('on', b.dataset.sort === ui.sort); });
     if (!state.places.length) {
-      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍽️</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍜🍙🍰</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
     } else if (!list.length) {
       el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 맛집이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
     } else {
@@ -674,16 +677,16 @@
     if (p.oneLiner) html += '<div class="fd-quote-box">' + esc(p.oneLiner) + '</div>';
     var menus = p.menus.filter(function(m){ return m.name || m.note || m.rating; });
     if (menus.length) {
-      html += '<div class="fd-section-title">먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
+      html += '<div class="fd-section-title">🍽️ 먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
         menus.map(function(m){
           return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
             (m.rating ? starsRO(m.rating) : '') + '</div>' +
             (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
         }).join('') + '</div>';
     }
-    if (p.memo) html += '<div class="fd-section-title">메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
+    if (p.memo) html += '<div class="fd-section-title">📝 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
     html += '<div class="fd-detail-actions"><button class="fd-btn-ghost fd-press" data-act="delete">지우기</button>' +
-      '<button class="fd-btn-primary fd-press" data-act="edit">고치기</button></div>';
+      '<button class="fd-btn-primary fd-press" data-act="edit">✏️ 고치기</button></div>';
     return html;
   }
   function fillDetail(sheet, p){
@@ -741,7 +744,7 @@
       state.places.splice(Math.min(pendingDelete.index, state.places.length), 0, place);
       pendingDelete = null;
       save(); render();
-      toast('되돌렸어요');
+      toast('되돌렸어요 🙌');
     }, 7000);
   }
 
@@ -803,7 +806,7 @@
         '<div class="fd-counter" id="fd-ed-one-count">' + d.oneLiner.length + ' / 60</div></div>' +
       '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점·한마디도 남길 수 있어요</small></label>' +
         '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
-        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">＋ 메뉴 추가</button></div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">🥢 메뉴 추가</button></div>' +
       '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div class="fd-toggle" id="fd-ed-revisit">' +
         '<button type="button" data-revisit="yes"' + (d.revisit === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
         '<button type="button" data-revisit="no"' + (d.revisit === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div></div>' +
@@ -1006,7 +1009,7 @@
       sheet.close();
       var detail = $('.fd-sheet[data-detail="' + place.id + '"]');
       if (detail) fillDetail(detail, place);
-      toast(cur ? '고쳤어요' : '맛집을 기록했어요 🍽️');
+      toast(cur ? '고쳤어요 ✨' : '맛집을 기록했어요 🍽️');
     }
 
     if (!src) setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
@@ -1054,7 +1057,7 @@
     a.href = URL.createObjectURL(file); a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-    toast('백업 파일을 저장했어요');
+    toast('백업 파일을 저장했어요 📦');
   }
   function importBackup(){
     var input = $('#fd-import-input');
