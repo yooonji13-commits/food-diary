@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>맛집 기록서</title>
+<title>먹보일기</title>
 <meta name="description" content="사진, 먹은 메뉴, 한줄평, 별점으로 남기는 나만의 맛집 기록">
-<meta name="theme-color" content="#FFF8F1">
+<meta name="theme-color" content="#FFFBF2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="맛집 기록서">
+<meta name="apple-mobile-web-app-title" content="먹보일기">
 <meta name="format-detection" content="telephone=no">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -18,23 +18,25 @@
   html,body{ margin:0; padding:0; }
   :root{
     color-scheme:light;
-    --bg:#FFF8F1;
-    --surface:#FFFFFF;
-    --surface-alt:#F7EEE4;
-    --ink:#2B211A;
-    --ink-soft:#5C4C40;
-    --muted:#A08E80;
-    --line:#F0E3D5;
-    --accent:#FF6A3D;
+    --bg:#FFFBF2;
+    --surface:#FFFEFA;
+    --surface-alt:#F5ECDF;
+    --ink:#3B2E25;
+    --ink-soft:#6B5A4C;
+    --muted:#A39181;
+    --line:#EFE4D4;
+    --accent:#A26B3A;
     --accent-ink:#FFFFFF;
-    --accent-soft:#FFEDE3;
-    --star:#FFB21E;
-    --star-off:#EADCCD;
-    --danger:#E5484D;
-    --radius-lg:20px;
-    --radius-md:14px;
-    --radius-sm:10px;
-    --shadow:0 1px 2px rgba(90,50,20,.05), 0 6px 18px rgba(90,50,20,.06);
+    --accent-soft:#F6EADB;
+    --accent-shadow:rgba(162,107,58,.28);
+    --star:#E8A83A;
+    --star-off:#E9DECF;
+    --danger:#CC5F52;
+    --radius-lg:26px;
+    --radius-md:18px;
+    --radius-sm:14px;
+    --radius-pill:999px;
+    --shadow:0 1px 2px rgba(120,90,50,.04), 0 6px 16px rgba(120,90,50,.05);
     --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Segoe UI",Roboto,"Noto Sans KR",sans-serif;
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -64,6 +66,7 @@
   }
   .fd-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
   .fd-head h1{ margin:0; font-size:26px; letter-spacing:-.5px; font-weight:800; }
+  .fd-h1-emoji{ display:inline-block; font-size:22px; transform:rotate(-8deg); }
   .fd-sub{ margin:2px 0 0; color:var(--muted); font-size:13.5px; }
   .fd-icon-btn{
     width:40px; height:40px; border-radius:50%; background:var(--surface);
@@ -73,7 +76,7 @@
 
   .fd-search{
     margin-top:16px; display:flex; align-items:center; gap:8px;
-    background:var(--surface); border-radius:var(--radius-md); padding:0 14px; height:46px;
+    background:var(--surface); border-radius:var(--radius-pill); padding:0 14px; height:46px;
     box-shadow:var(--shadow);
   }
   .fd-search svg{ width:18px; height:18px; color:var(--muted); flex:none; }
@@ -88,15 +91,49 @@
   }
   .fd-chips::-webkit-scrollbar{ display:none; }
   .fd-chip{
-    flex:none; height:34px; padding:0 13px; border-radius:17px; background:var(--surface);
+    flex:none; height:34px; padding:0 13px; border-radius:var(--radius-pill); background:var(--surface);
     border:1px solid var(--line); font-size:14px; color:var(--ink-soft); white-space:nowrap;
   }
-  .fd-chip.on{ background:var(--ink); border-color:var(--ink); color:#fff; font-weight:600; }
+  .fd-chip.on{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600; }
 
   .fd-sortbar{ display:flex; align-items:center; justify-content:space-between; margin:14px 2px 10px; }
   .fd-count{ font-size:13px; color:var(--muted); }
-  .fd-seg{ display:flex; background:var(--surface-alt); border-radius:10px; padding:3px; }
-  .fd-seg button{ font-size:13px; padding:5px 10px; border-radius:8px; color:var(--muted); }
+  .fd-sortbar-left{ display:flex; align-items:center; gap:8px; }
+  .fd-map-btn{ height:32px; padding:0 12px; border-radius:var(--radius-pill); background:var(--surface); border:1px solid var(--line); font-size:13px; font-weight:600; color:var(--accent); }
+
+  /* ---- map ---- */
+  .fd-sheet.fd-sheet-map .fd-sheet-body{ padding:0; overflow:hidden; position:relative; }
+  .fd-sheet.fd-sheet-map .fd-sheet-inner{ max-width:none; height:100%; }
+  .fd-map-wrap{ position:relative; height:100%; background:var(--surface-alt); }
+  .fd-map{ position:absolute; inset:0; }
+  .fd-map-state{ position:absolute; left:16px; right:16px; top:16px; z-index:3; }
+  .fd-map-legend{
+    position:absolute; left:12px; top:12px; z-index:2; display:flex; gap:10px; align-items:center;
+    background:rgba(255,254,250,.94); border-radius:var(--radius-pill); padding:6px 12px; font-size:12px; color:var(--ink-soft); box-shadow:var(--shadow);
+  }
+  .fd-map-legend i{ display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:4px; vertical-align:-1px; }
+  .fd-map-legend .v{ background:var(--accent); }
+  .fd-map-legend .w{ background:#FFFEFA; border:2px solid #8FB59A; }
+  .fd-map-note{
+    position:absolute; left:12px; right:12px; top:52px; z-index:2; text-align:center; pointer-events:none;
+  }
+  .fd-map-note span{ display:inline-block; background:rgba(59,46,37,.78); color:#fff; font-size:12.5px; border-radius:var(--radius-pill); padding:5px 12px; }
+  .fd-pin{
+    display:grid; place-items:center; width:40px; height:40px; border-radius:50% 50% 50% 6px; transform:rotate(-45deg);
+    background:var(--accent); border:2.5px solid #FFFEFA; box-shadow:0 3px 8px rgba(80,55,30,.3); cursor:pointer; padding:0;
+  }
+  .fd-pin span{ transform:rotate(45deg); font-size:19px; line-height:1; }
+  .fd-pin.wish{ background:#FFFEFA; border-color:#8FB59A; border-width:3px; }
+  .fd-pin.on{ outline:3px solid rgba(232,168,58,.7); }
+  .fd-map-card{
+    position:absolute; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom) + 14px); z-index:3;
+    display:flex; gap:12px; align-items:center; text-align:left; width:auto;
+    background:var(--surface); border-radius:var(--radius-lg); padding:10px; box-shadow:0 6px 20px rgba(80,55,30,.18); animation:fd-rise .2s ease both;
+  }
+  .fd-map-card .fd-thumb{ width:64px; height:64px; font-size:30px; }
+  .fd-map-card .fd-go{ flex:none; color:var(--accent); font-size:20px; padding:0 4px; }
+  .fd-seg{ display:flex; background:var(--surface-alt); border-radius:var(--radius-pill); padding:3px; }
+  .fd-seg button{ font-size:13px; padding:6px 12px; border-radius:var(--radius-pill); color:var(--muted); }
   .fd-seg button.on{ background:var(--surface); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
   /* ---- list ---- */
@@ -112,19 +149,19 @@
   .fd-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fd-thumb-count{
     position:absolute; right:5px; bottom:5px; font-size:11px; font-weight:600; color:#fff;
-    background:rgba(0,0,0,.45); border-radius:8px; padding:1px 6px;
+    background:rgba(59,46,37,.5); border-radius:var(--radius-pill); padding:1px 7px;
   }
   .fd-card-body{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .fd-card-top{ display:flex; align-items:center; gap:6px; }
   .fd-card-title{ font-weight:700; font-size:16.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .fd-again{ flex:none; font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:6px; padding:1px 6px; }
+  .fd-again{ flex:none; font-size:11px; font-weight:700; color:var(--accent); background:var(--accent-soft); border-radius:var(--radius-pill); padding:2px 8px; }
   .fd-card-meta{ font-size:12.5px; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .fd-card-quote{
     font-size:14px; color:var(--ink-soft); margin-top:5px;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:keep-all;
   }
   .fd-menu-chips{ display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
-  .fd-menu-chip{ font-size:12px; background:var(--surface-alt); color:var(--ink-soft); border-radius:6px; padding:2px 7px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-menu-chip{ font-size:12px; background:var(--surface-alt); color:var(--ink-soft); border-radius:var(--radius-pill); padding:3px 9px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .fd-stars-ro{ display:inline-flex; letter-spacing:-1px; color:var(--star-off); font-size:13px; }
   .fd-stars-ro .on{ color:var(--star); }
@@ -137,14 +174,14 @@
 
   .fd-fab{
     position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 20px);
-    height:54px; padding:0 26px; border-radius:27px; background:var(--accent); color:var(--accent-ink);
-    font-weight:700; font-size:16px; box-shadow:0 8px 22px rgba(255,106,61,.38); z-index:10;
+    height:54px; padding:0 26px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink);
+    font-weight:700; font-size:16px; box-shadow:0 8px 22px var(--accent-shadow); z-index:10;
     display:flex; align-items:center; gap:6px; white-space:nowrap;
   }
   .fd-fab:active{ transform:translateX(-50%) scale(.96); }
 
   /* ---- sheets ---- */
-  .fd-backdrop{ position:fixed; inset:0; background:rgba(30,18,10,.35); z-index:20; animation:fd-fade-in .2s ease; }
+  .fd-backdrop{ position:fixed; inset:0; background:rgba(59,46,37,.28); z-index:20; animation:fd-fade-in .2s ease; }
   .fd-sheet{
     position:fixed; inset:0; z-index:21; background:var(--bg); display:flex; flex-direction:column;
     animation:fd-sheet-in .28s cubic-bezier(.2,.8,.2,1);
@@ -156,7 +193,7 @@
     border-bottom:1px solid transparent;
   }
   .fd-sheet-head h2{ margin:0; font-size:16.5px; font-weight:700; flex:1; text-align:center; }
-  .fd-text-btn{ min-width:64px; height:40px; padding:0 10px; font-size:16px; color:var(--ink-soft); border-radius:10px; }
+  .fd-text-btn{ min-width:64px; height:40px; padding:0 10px; font-size:16px; color:var(--ink-soft); border-radius:var(--radius-pill); }
   .fd-text-btn.strong{ color:var(--accent); font-weight:700; }
   .fd-sheet-body{
     flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
@@ -174,7 +211,7 @@
   }
   .fd-textarea{ height:auto; min-height:88px; padding:12px 14px; resize:none; line-height:1.5; }
   .fd-input:focus, .fd-textarea:focus{ border-color:var(--accent); }
-  .fd-input::placeholder, .fd-textarea::placeholder{ color:#C4B4A6; }
+  .fd-input::placeholder, .fd-textarea::placeholder{ color:#C9B9A8; }
   .fd-input.big{ height:54px; font-size:18px; font-weight:700; }
   .fd-counter{ text-align:right; font-size:12px; color:var(--muted); margin-top:4px; }
   .fd-row{ display:flex; gap:8px; }
@@ -184,13 +221,13 @@
   .fd-photos{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
   .fd-photo-tile{ position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface-alt); }
   .fd-photo-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:5px; padding:1px 5px; }
+  .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:var(--radius-pill); padding:1px 7px; }
   .fd-photo-del{
     position:absolute; right:3px; top:3px; width:24px; height:24px; border-radius:50%;
     background:rgba(0,0,0,.55); color:#fff; font-size:13px; line-height:24px; text-align:center;
   }
   .fd-photo-add{
-    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #E2CDB9; background:var(--surface);
+    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #DCC7AE; background:var(--surface);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); font-size:12px;
   }
   .fd-photo-add svg{ width:24px; height:24px; color:var(--accent); }
@@ -217,18 +254,18 @@
   .fd-menu-edit .fd-stars-in{ flex:none; }
   .fd-menu-del{ flex:none !important; width:34px; height:34px; border-radius:50%; color:var(--muted); font-size:15px; }
   .fd-add-line{
-    width:100%; height:46px; border-radius:var(--radius-md); border:1.5px dashed #E2CDB9; color:var(--accent);
+    width:100%; height:48px; border-radius:var(--radius-pill); border:1.5px dashed #DCC7AE; color:var(--accent);
     font-weight:700; font-size:14.5px; background:transparent;
   }
 
   .fd-toggle{ display:flex; gap:8px; }
   .fd-toggle button{
-    flex:1; height:48px; border-radius:var(--radius-md); background:var(--surface); border:1px solid var(--line);
+    flex:1; height:48px; border-radius:var(--radius-pill); background:var(--surface); border:1px solid var(--line);
     font-size:14.5px; color:var(--ink-soft);
   }
   .fd-toggle button.on{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:700; }
 
-  .fd-danger-btn{ width:100%; height:48px; margin-top:28px; border-radius:var(--radius-md); color:var(--danger); background:var(--surface); border:1px solid var(--line); font-weight:600; }
+  .fd-danger-btn{ width:100%; height:48px; margin-top:28px; border-radius:var(--radius-pill); color:var(--danger); background:var(--surface); border:1px solid var(--line); font-weight:600; }
 
   /* ---- detail ---- */
   .fd-gallery{ position:relative; margin:4px -16px 0; }
@@ -236,16 +273,9 @@
   .fd-gallery-track::-webkit-scrollbar{ display:none; }
   .fd-gallery-track button{ flex:none; width:100%; aspect-ratio:4/3; scroll-snap-align:center; background:var(--surface-alt); }
   .fd-gallery-track img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(0,0,0,.45); border-radius:10px; padding:2px 9px; pointer-events:none; }
-  .fd-detail-hero-empty{ margin:4px 0 0; height:130px; border-radius:var(--radius-lg); background:var(--surface-alt); display:grid; place-items:center; font-size:58px; }
+  .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(59,46,37,.5); border-radius:var(--radius-pill); padding:2px 10px; pointer-events:none; }
   .fd-detail-title{ margin:18px 0 0; font-size:24px; font-weight:800; letter-spacing:-.4px; word-break:keep-all; }
   .fd-detail-meta{ color:var(--muted); font-size:14px; margin-top:4px; }
-  .fd-detail-rate{ display:flex; align-items:center; gap:8px; margin-top:10px; }
-  .fd-quote-box{
-    margin-top:16px; background:var(--surface); border-radius:var(--radius-lg); padding:16px 18px; box-shadow:var(--shadow);
-    font-size:17px; font-weight:600; line-height:1.5; word-break:keep-all; position:relative;
-  }
-  .fd-quote-box::before{ content:"“"; position:absolute; left:10px; top:-8px; font-size:44px; color:var(--accent); opacity:.35; font-family:Georgia,serif; }
   .fd-section-title{ font-size:14px; font-weight:700; color:var(--ink-soft); margin:24px 2px 8px; }
   .fd-menu-list{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden; }
   .fd-menu-item{ padding:13px 16px; }
@@ -255,9 +285,8 @@
   .fd-menu-item-note{ font-size:14px; color:var(--ink-soft); margin-top:3px; }
   .fd-memo{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:14px 16px; white-space:pre-wrap; word-break:break-word; font-size:14.5px; color:var(--ink-soft); }
   .fd-detail-actions{ display:flex; gap:8px; margin-top:28px; }
-  .fd-detail-actions button{ flex:1; height:50px; border-radius:var(--radius-md); font-weight:700; }
+  .fd-detail-actions button{ flex:1; height:52px; border-radius:var(--radius-pill); font-weight:700; }
   .fd-btn-primary{ background:var(--accent); color:var(--accent-ink); }
-  .fd-btn-ghost{ background:var(--surface); border:1px solid var(--line); color:var(--danger); }
 
   /* ---- photo viewer ---- */
   .fd-viewer{ position:fixed; inset:0; z-index:40; background:#000; animation:fd-fade-in .18s ease; }
@@ -270,7 +299,7 @@
 
   /* ---- action sheet ---- */
   .fd-action-sheet{
-    position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--surface); border-radius:22px 22px 0 0;
+    position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--surface); border-radius:var(--radius-lg) var(--radius-lg) 0 0;
     padding:10px 16px calc(env(safe-area-inset-bottom) + 16px); animation:fd-sheet-in .25s cubic-bezier(.2,.8,.2,1);
     max-width:560px; margin:0 auto;
   }
@@ -278,33 +307,116 @@
   .fd-grab{ width:38px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 12px; }
   .fd-action-sheet h3{ margin:0 4px 4px; font-size:17px; }
   .fd-action-sheet p{ margin:0 4px 14px; color:var(--muted); font-size:13px; }
-  .fd-action{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 6px; border-radius:12px; text-align:left; font-size:16px; }
+  .fd-action{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 8px; border-radius:var(--radius-md); text-align:left; font-size:16px; }
   .fd-action:active{ background:var(--surface-alt); }
-  .fd-action span:first-child{ width:38px; height:38px; border-radius:12px; background:var(--accent-soft); display:grid; place-items:center; font-size:19px; flex:none; }
+  .fd-action span:first-child{ width:40px; height:40px; border-radius:50%; background:var(--accent-soft); display:grid; place-items:center; font-size:19px; flex:none; }
   .fd-action small{ display:block; color:var(--muted); font-size:12.5px; }
 
   /* ---- toast ---- */
   .fd-toast{
     position:fixed; left:16px; right:16px; bottom:calc(env(safe-area-inset-bottom) + 88px); z-index:50;
-    max-width:420px; margin:0 auto; background:rgba(43,33,26,.94); color:#fff; border-radius:14px;
+    max-width:420px; margin:0 auto; background:rgba(59,46,37,.94); color:#fff; border-radius:var(--radius-pill);
     padding:13px 16px; font-size:14.5px; display:flex; align-items:center; justify-content:space-between; gap:10px;
     opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity .2s ease, transform .2s ease;
   }
   .fd-toast.show{ opacity:1; transform:none; pointer-events:auto; }
-  .fd-toast button{ color:#FFB89E; font-weight:700; flex:none; padding:4px 2px; }
+  .fd-toast button{ color:#F3CC97; font-weight:700; flex:none; padding:4px 2px; }
+  [hidden]{ display:none !important; }
+
+  /* ---- place screen ---- */
+  .fd-card-sub{ display:flex; align-items:center; gap:6px; margin-top:2px; min-width:0; }
+  .fd-visit-n{ font-size:11.5px; font-weight:700; color:var(--ink-soft); background:var(--surface-alt); border-radius:var(--radius-pill); padding:1px 8px; white-space:nowrap; }
+  .fd-place-head{ display:flex; align-items:center; gap:12px; margin-top:6px; }
+  .fd-place-emoji{ width:58px; height:58px; border-radius:var(--radius-md); background:var(--surface-alt); display:grid; place-items:center; font-size:32px; flex:none; }
+  .fd-place-name{ min-width:0; }
+  .fd-place-head .fd-detail-title{ margin:0; }
+  .fd-place-revisit{ margin-top:16px; }
+  .fd-links{ display:flex; flex-direction:column; gap:6px; }
+  .fd-link{ display:block; background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:11px 14px; font-size:14px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none; }
+  a.fd-link{ color:var(--accent); font-weight:600; }
+  .fd-btn-soft{ background:var(--surface); border:1px solid var(--line); color:var(--ink); }
+  .fd-detail-actions button{ font-size:14.5px; white-space:nowrap; }
+  .fd-visit{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:12px; margin-top:10px; animation:fd-rise .25s ease both; }
+  .fd-visit .fd-gallery{ margin:0 0 10px; border-radius:var(--radius-md); overflow:hidden; }
+  .fd-visit .fd-gallery-count{ right:10px; bottom:10px; }
+  .fd-visit-top{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; margin:0 2px; }
+  .fd-visit-date{ font-weight:700; font-size:14.5px; }
+  .fd-visit .fd-rate-word{ font-size:13px; }
+  .fd-visit-quote{ margin:6px 2px 0; font-size:15.5px; font-weight:600; line-height:1.5; word-break:keep-all; }
+  .fd-visit .fd-menu-list, .fd-visit .fd-memo{ box-shadow:none; background:var(--bg); border-radius:var(--radius-md); margin-top:8px; }
+  .fd-visit .fd-menu-item{ padding:10px 12px; }
+  .fd-visit-actions{ display:flex; justify-content:flex-end; gap:6px; margin-top:10px; }
+  .fd-mini-btn{ height:34px; padding:0 14px; border-radius:var(--radius-pill); border:1px solid var(--line); background:var(--surface); font-size:13.5px; color:var(--ink-soft); }
+  .fd-mini-btn.danger{ color:var(--danger); }
+
+  /* ---- same place notice ---- */
+  .fd-same{ margin-top:10px; background:var(--accent-soft); border-radius:var(--radius-md); padding:12px; animation:fd-rise .2s ease both; }
+  .fd-same b{ display:block; font-size:14.5px; color:var(--accent); }
+  .fd-same p{ margin:2px 0 4px; font-size:13px; color:var(--ink-soft); }
+  .fd-same-item{ display:flex; align-items:center; gap:8px; background:var(--surface); border-radius:var(--radius-sm); padding:8px 8px 8px 12px; margin-top:6px; }
+  .fd-same-item div{ flex:1; min-width:0; }
+  .fd-same-item strong{ display:block; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-same-item small{ display:block; font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-same-item button{ flex:none; max-width:46%; min-height:36px; padding:4px 12px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink); font-size:12.5px; font-weight:700; line-height:1.25; word-break:keep-all; }
+  .fd-same-new{ margin-top:8px; width:100%; height:38px; border-radius:var(--radius-pill); border:1px solid var(--line); background:var(--surface); font-size:13.5px; color:var(--ink-soft); }
+  .fd-form-place{ margin-top:8px; display:flex; align-items:center; gap:10px; background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:12px 14px; font-weight:700; font-size:16.5px; min-width:0; }
+  .fd-form-place span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-link-edits{ display:flex; flex-direction:column; gap:6px; }
+  .fd-link-edit{ align-items:center; }
+
+  /* ---- 다녀온 곳 / 가고 싶은 곳 ---- */
+  .fd-side{ display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
+  .fd-side button{ flex:1; min-width:0; height:40px; border-radius:var(--radius-pill); font-size:14.5px; color:var(--muted); white-space:nowrap; }
+  .fd-side button.on{ background:var(--surface); color:var(--ink); font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .fd-thumb.wish{ width:64px; height:64px; font-size:30px; }
+  .fd-link-mark{ flex:none; font-size:11px; font-weight:700; color:var(--ink-soft); background:var(--surface-alt); border-radius:var(--radius-pill); padding:2px 8px; }
+  .fd-want-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .fd-want-chips .fd-menu-chip{ font-size:13.5px; padding:6px 12px; background:var(--surface); box-shadow:var(--shadow); }
+  .fd-detail-addr{ font-size:13px; color:var(--muted); margin-top:2px; word-break:keep-all; }
+
+  /* ---- 위치 고르기 (카카오) ---- */
+  .fd-loc-bar{ display:flex; gap:8px; }
+  .fd-loc-bar .fd-input{ flex:1; min-width:0; }
+  .fd-loc-bar input::-webkit-search-cancel-button{ display:none; }
+  .fd-loc-go{ flex:none; height:48px; padding:0 18px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:15px; }
+  .fd-loc-note{ margin:8px 4px 0; font-size:13px; color:var(--muted); word-break:keep-all; }
+  .fd-loc-results{ display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:300px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .fd-loc-results:empty{ display:none; }
+  .fd-loc-item{ display:block; width:100%; min-width:0; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 14px; }
+  .fd-loc-item strong, .fd-loc-item small{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-loc-item strong{ font-size:15px; }
+  .fd-loc-item small{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
+  .fd-loc-item small.fd-loc-cat{ color:var(--muted); }
+  .fd-loc-cancel{ display:block; margin:8px auto 0; height:36px; padding:0 16px; font-size:13.5px; color:var(--muted); border-radius:var(--radius-pill); }
+  .fd-loc-picked{ display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 10px 10px 12px; }
+  .fd-loc-picked > div{ flex:1; min-width:0; }
+  .fd-loc-picked strong, .fd-loc-picked small{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-loc-picked strong{ font-size:15px; }
+  .fd-loc-picked small{ font-size:12.5px; color:var(--muted); }
+  .fd-loc-picked .fd-mini-btn{ flex:none; padding:0 11px; }
+  .fd-loc-pin{ flex:none; font-size:20px; }
+  .fd-loc-notice{ background:var(--accent-soft); border-radius:var(--radius-md); padding:12px 14px; animation:fd-rise .2s ease both; }
+  .fd-loc-notice b{ display:block; font-size:14px; color:var(--accent); word-break:keep-all; }
+  .fd-loc-notice p{ margin:3px 0 0; font-size:13px; color:var(--ink-soft); word-break:keep-all; }
+  .fd-loc-notice .fd-mini-btn{ margin-top:8px; }
+  .fd-detail-kname{ font-size:12px; color:var(--muted); margin-top:1px; word-break:keep-all; }
 </style>
 </head>
 <body>
 <div class="fd-app">
   <header class="fd-head">
     <div>
-      <h1>맛집 기록서</h1>
+      <h1>맛집 기록서 <span class="fd-h1-emoji">🍙</span></h1>
       <p class="fd-sub" id="fd-stats"></p>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
       <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </button>
   </header>
+  <div class="fd-side" id="fd-side" role="tablist">
+    <button type="button" data-side="places" role="tab">🍽️ 다녀온 곳</button>
+    <button type="button" data-side="wishes" role="tab">💭 가고 싶은 곳</button>
+  </div>
   <label class="fd-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="fd-q" type="search" placeholder="가게, 메뉴, 지역으로 찾기" autocomplete="off" enterkeyhint="search">
@@ -312,7 +424,10 @@
   </label>
   <div class="fd-chips" id="fd-cats"></div>
   <div class="fd-sortbar">
-    <span class="fd-count" id="fd-count"></span>
+    <div class="fd-sortbar-left">
+      <span class="fd-count" id="fd-count"></span>
+      <button type="button" class="fd-map-btn fd-press" id="fd-map-btn">🗺️ 지도</button>
+    </div>
     <div class="fd-seg" id="fd-sort">
       <button data-sort="recent">최근 방문</button>
       <button data-sort="rating">별점 높은</button>
@@ -320,7 +435,7 @@
   </div>
   <main class="fd-list" id="fd-list"></main>
 </div>
-<button class="fd-fab" id="fd-add"><span style="font-size:20px;line-height:1">＋</span> 맛집 기록하기</button>
+<button class="fd-fab" id="fd-add"><span style="font-size:19px;line-height:1" id="fd-add-emoji">🍴</span> <span id="fd-add-label">맛집 기록하기</span></button>
 <input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
 <input type="file" id="fd-import-input" accept="application/json,.json" hidden>
 <div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
@@ -329,7 +444,11 @@
 (function(){
   'use strict';
 
-  var KEY = 'fd_data_v1';
+  // 카카오 개발자 사이트에서 받은 JavaScript 키를 따옴표 안에 붙여 넣으세요 (비어 있으면 위치 검색·지도만 안 돼요)
+  var KAKAO_JS_KEY = '';
+
+  var KEY = 'fd_data_v2';
+  var KEY_V1 = 'fd_data_v1';   // 1판 기록. 읽기만 하고 절대 쓰거나 지우지 않는다
   var MAX_PHOTOS = 10;
   var CATS = [
     { name:'한식', emoji:'🍚' }, { name:'일식', emoji:'🍣' }, { name:'중식', emoji:'🥟' },
@@ -337,7 +456,7 @@
     { name:'아시안', emoji:'🍜' }, { name:'카페·디저트', emoji:'🍰' }, { name:'술집', emoji:'🍻' },
     { name:'기타', emoji:'🍴' }
   ];
-  var RATE_WORDS = ['별을 눌러요','별로였어요', '그저 그래요', '괜찮았어요', '맛있어요!', '인생 맛집 🔥'];
+  var RATE_WORDS = ['별을 눌러요', '별로였어요 😕', '그저 그래요 😐', '괜찮았어요 🙂', '맛있어요! 😋', '인생 맛집 🔥'];
 
   // ---------- 작은 도구 ----------
   function $(sel, root){ return (root || document).querySelector(sel); }
@@ -366,58 +485,236 @@
   function cmp(a, b){ return a < b ? -1 : a > b ? 1 : 0; }
 
   // ---------- 저장 (기록은 localStorage, 사진은 IndexedDB) ----------
+  // 2판 모양: { version:2, places:[{ ...가게, visits:[방문] }], wishes:[] }
+  // 모르는 필드는 그대로 두고, 깨진 값만 안전한 값으로 바꾼다. 줄은 버리지 않는다.
+  function str(v){ return typeof v === 'string' ? v : ''; }
+  function strList(a){ return Array.isArray(a) ? a.filter(function(x){ return typeof x === 'string' && x; }) : []; }
   function normalizeMenu(m){
     m = (m && typeof m === 'object') ? m : {};
     return Object.assign({}, m, {
       id: typeof m.id === 'string' && m.id ? m.id : uid(),
-      name: typeof m.name === 'string' ? m.name : '',
+      name: str(m.name),
       rating: clampRating(m.rating),
-      note: typeof m.note === 'string' ? m.note : ''
+      note: str(m.note)
     });
   }
+  function normalizeLocation(l){
+    if (!l || typeof l !== 'object' || Array.isArray(l)) return null;
+    var lat = Number(l.lat), lng = Number(l.lng);
+    return Object.assign({}, l, {
+      kakaoId: l.kakaoId == null ? '' : String(l.kakaoId),
+      placeName: str(l.placeName),
+      address: str(l.address),
+      // 숫자로 읽을 수 없는 좌표는 null로 둔다 (지도에 0,0으로 찍히지 않게)
+      lat: isFinite(lat) && l.lat !== null && l.lat !== '' ? lat : null,
+      lng: isFinite(lng) && l.lng !== null && l.lng !== '' ? lng : null
+    });
+  }
+  function normalizeVisit(v){
+    v = (v && typeof v === 'object') ? v : {};
+    return Object.assign({}, v, {
+      id: typeof v.id === 'string' && v.id ? v.id : uid(),
+      visitedAt: isDate(v.visitedAt) ? v.visitedAt : '',
+      rating: clampRating(v.rating),
+      oneLiner: str(v.oneLiner),
+      menus: Array.isArray(v.menus) ? v.menus.map(normalizeMenu) : [],
+      photos: strList(v.photos),
+      memo: str(v.memo),
+      createdAt: str(v.createdAt),
+      updatedAt: str(v.updatedAt)
+    });
+  }
+  // 방문이 0개인 가게도 그대로 둔다. 가짜 방문을 만들지 않는다
   function normalizePlace(p){
     p = (p && typeof p === 'object') ? p : {};
     return Object.assign({}, p, {
       id: typeof p.id === 'string' && p.id ? p.id : uid(),
-      name: typeof p.name === 'string' ? p.name : '',
-      category: typeof p.category === 'string' ? p.category : '',
-      area: typeof p.area === 'string' ? p.area : '',
-      visitedAt: isDate(p.visitedAt) ? p.visitedAt : '',
-      rating: clampRating(p.rating),
-      oneLiner: typeof p.oneLiner === 'string' ? p.oneLiner : '',
-      menus: Array.isArray(p.menus) ? p.menus.map(normalizeMenu) : [],
-      photos: Array.isArray(p.photos) ? p.photos.filter(function(x){ return typeof x === 'string' && x; }) : [],
+      name: str(p.name),
+      category: str(p.category),
+      area: str(p.area),
+      location: normalizeLocation(p.location),
       revisit: p.revisit === 'yes' || p.revisit === 'no' ? p.revisit : '',
-      memo: typeof p.memo === 'string' ? p.memo : '',
-      createdAt: typeof p.createdAt === 'string' ? p.createdAt : '',
-      updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : ''
+      links: strList(p.links),
+      memo: str(p.memo),
+      fromWishIds: strList(p.fromWishIds),
+      visits: Array.isArray(p.visits) ? p.visits.map(normalizeVisit) : [],
+      createdAt: str(p.createdAt),
+      updatedAt: str(p.updatedAt)
+    });
+  }
+  function normalizeWish(w){
+    w = (w && typeof w === 'object') ? w : {};
+    return Object.assign({}, w, {
+      id: typeof w.id === 'string' && w.id ? w.id : uid(),
+      name: str(w.name),
+      category: str(w.category),
+      area: str(w.area),
+      location: normalizeLocation(w.location),
+      link: str(w.link),
+      wantMenus: strList(w.wantMenus),
+      memo: str(w.memo),
+      createdAt: str(w.createdAt),
+      updatedAt: str(w.updatedAt)
     });
   }
   function normalizeState(s){
     s = (s && typeof s === 'object') ? s : {};
     return Object.assign({}, s, {
-      version: 1,
-      places: Array.isArray(s.places) ? s.places.map(normalizePlace) : []
+      version: 2,
+      places: Array.isArray(s.places) ? s.places.map(normalizePlace) : [],
+      wishes: Array.isArray(s.wishes) ? s.wishes.map(normalizeWish) : []
     });
   }
-  function load(){
+
+  // 1판 기록 하나 → 가게 하나 + 방문 하나. id는 항상 같은 값으로 정한다
+  // (가게 id = 1판 id, 방문 id = 1판 id + '_v1') — 같은 1판 백업을 여러 번 불러와도 방문이 늘지 않는다
+  var V1_VISIT_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
+  function placeFromV1(r){
+    r = (r && typeof r === 'object') ? r : {};
+    // 숫자 id도 문자열로 바꿔 같은 값을 쓴다. id가 정말 없을 때만 새로 만든다
+    var id = (typeof r.id === 'string' && r.id) || (typeof r.id === 'number' && isFinite(r.id)) ? String(r.id) : uid();
+    var place = {};
+    // 1판에서 모르는 필드는 가게 쪽에 그대로 옮겨 둔다
+    Object.keys(r).forEach(function(k){ if (V1_VISIT_FIELDS.indexOf(k) === -1) place[k] = r[k]; });
+    Object.assign(place, {
+      id: id, name: r.name, category: r.category, area: r.area, revisit: r.revisit,
+      location: null, links: [], memo: '', fromWishIds: [],
+      createdAt: r.createdAt, updatedAt: r.updatedAt,
+      visits: [{
+        id: id + '_v1', visitedAt: r.visitedAt, rating: r.rating, oneLiner: r.oneLiner,
+        menus: r.menus, photos: r.photos, memo: r.memo, createdAt: r.createdAt, updatedAt: r.updatedAt
+      }]
+    });
+    return normalizePlace(place);
+  }
+  function placesFromV1(list){ return Array.isArray(list) ? list.map(placeFromV1) : []; }
+
+  // 읽지 못한 원문은 지우지 않고 옆 키에 남겨 둔다. 같은 원문이 이미 남아 있으면 또 만들지 않는다
+  function keepUnreadable(key, raw){
+    try {
+      var k = key + '_unreadable', n = 0, name;
+      while ((name = n ? k + '_' + n : k), localStorage.getItem(name) !== null) {
+        if (localStorage.getItem(name) === raw) return;
+        n++;
+      }
+      localStorage.setItem(name, raw);
+    } catch (e) {}
+  }
+  function readJSON(key, keepCopy){
     var raw = null;
-    try { raw = localStorage.getItem(KEY); } catch (e) { return normalizeState(null); }
-    if (!raw) return normalizeState(null);
-    try { return normalizeState(JSON.parse(raw)); }
-    catch (e) {
-      // 읽지 못한 원문은 지우지 않고 옆에 남겨 둔다
-      try {
-        var k = KEY + '_unreadable', n = 0;
-        while (localStorage.getItem(n ? k + '_' + n : k) !== null) n++;
-        localStorage.setItem(n ? k + '_' + n : k, raw);
-      } catch (e2) {}
-      return normalizeState(null);
+    try { raw = localStorage.getItem(key); } catch (e) { return { ok:false, missing:true }; }
+    if (raw === null) return { ok:false, missing:true };
+    try { return { ok:true, data:JSON.parse(raw), raw:raw }; }
+    catch (e) { if (keepCopy) keepUnreadable(key, raw); return { ok:false, missing:false }; }
+  }
+  function load(){
+    var v2 = readJSON(KEY, true);
+    if (v2.ok) {
+      // JSON이지만 모양이 다르면(배열이 아닌 places 등) 다음 저장이 원문을 덮기 전에 사본을 남긴다
+      var d = v2.data;
+      if (!d || typeof d !== 'object' || Array.isArray(d) ||
+          (d.places != null && !Array.isArray(d.places)) || (d.wishes != null && !Array.isArray(d.wishes))) keepUnreadable(KEY, v2.raw);
+      return normalizeState(d);
     }
+    if (!v2.missing) return normalizeState(null);
+    // 2판이 아직 없으면 1판을 옮긴다. fd_data_v1은 읽기만 한다
+    var v1 = readJSON(KEY_V1);
+    if (!v1.ok) return normalizeState(null);
+    var s = normalizeState({ places: placesFromV1(v1.data && v1.data.places) });
+    writeState(s);
+    return s;
+  }
+  function writeState(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); return true; }
+    catch (e) { return false; }
   }
   function save(){
-    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
-    catch (e) { toast('저장하지 못했어요. 저장 공간을 확인해 주세요'); return false; }
+    if (writeState(state)) return true;
+    toast('저장하지 못했어요. 저장 공간을 확인해 주세요');
+    return false;
+  }
+
+  // ---------- 가게·방문 도우미 ----------
+  // 방문 순서: 방문한 날 늦은 순, 같으면 만든 때 늦은 순 (문자열 비교, 뺄셈 금지)
+  function cmpVisitDesc(a, b){ return cmp(b.visitedAt, a.visitedAt) || cmp(b.createdAt, a.createdAt); }
+  function sortedVisits(p){ return p.visits.slice().sort(cmpVisitDesc); }
+  function latestVisit(p){ return p.visits.length ? sortedVisits(p)[0] : null; }
+  function findVisit(p, vid){
+    for (var i = 0; i < p.visits.length; i++) if (p.visits[i].id === vid) return p.visits[i];
+    return null;
+  }
+  function placePhotos(p){
+    var ids = [];
+    p.visits.forEach(function(v){ v.photos.forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    return ids;
+  }
+  function allPhotoIds(places){
+    var ids = [];
+    places.forEach(function(p){ placePhotos(p).forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    return ids;
+  }
+  // 되돌리기를 기다리는 가게의 사진도 쓰는 중으로 본다 (되돌렸을 때 사진이 남아 있어야 한다)
+  function photoInUse(pid){
+    var places = pendingDelete ? state.places.concat([pendingDelete.place]) : state.places;
+    return places.some(function(p){ return p.visits.some(function(v){ return v.photos.indexOf(pid) !== -1; }); });
+  }
+  // 방문 하나를 바꾸면 그 방문과 가게의 updatedAt을 함께 올린다
+  function touch(place, visit){
+    var now = new Date().toISOString();
+    if (visit) { visit.updatedAt = now; if (!visit.createdAt) visit.createdAt = now; }
+    place.updatedAt = now;
+    if (!place.createdAt) place.createdAt = now;
+    return now;
+  }
+  function laterOf(a, b){ return cmp(a, b) >= 0 ? a : b; }
+  function union(a, b){
+    var out = a.slice();
+    b.forEach(function(x){ if (out.indexOf(x) === -1) out.push(x); });
+    return out;
+  }
+
+  // 백업 합치기. 지금 있는 것은 지우지 않는다. 결과와 개수만 돌려주고 state는 건드리지 않는다
+  function mergeData(cur, inc){
+    var c = { newPlaces:0, newVisits:0, newWishes:0, newer:0 };
+    var places = cur.places.map(clone);
+    inc.places.forEach(function(ip){
+      var idx = -1;
+      places.forEach(function(p, i){ if (p.id === ip.id) idx = i; });
+      if (idx === -1) {
+        places.push(clone(ip));
+        c.newPlaces++; c.newVisits += ip.visits.length;
+        return;
+      }
+      var lp = places[idx];
+      var incLater = cmp(ip.updatedAt, lp.updatedAt) > 0;
+      var replaced = incLater;   // 가게 필드나 방문 중 하나라도 더 최근 것으로 바뀌면 가게 하나로 센다
+      var visits = lp.visits.slice();
+      ip.visits.forEach(function(iv){
+        var j = -1;
+        visits.forEach(function(v, k){ if (v.id === iv.id) j = k; });
+        if (j === -1) { visits.push(clone(iv)); c.newVisits++; }
+        else if (cmp(iv.updatedAt, visits[j].updatedAt) > 0) { visits[j] = clone(iv); replaced = true; }
+      });
+      if (replaced) c.newer++;
+      var base = incLater ? clone(ip) : lp;
+      base.links = union(lp.links, ip.links);
+      base.fromWishIds = union(lp.fromWishIds, ip.fromWishIds);
+      base.visits = visits;
+      base.updatedAt = laterOf(lp.updatedAt, ip.updatedAt);
+      places[idx] = base;
+    });
+    // 가고 싶은 곳은 가게를 다 합친 뒤에. 이미 가게가 된 곳은 되살리지 않는다
+    var done = [];
+    places.forEach(function(p){ done = union(done, p.fromWishIds); });
+    var wishes = cur.wishes.map(clone);
+    inc.wishes.forEach(function(iw){
+      if (done.indexOf(iw.id) !== -1) return;
+      var idx = -1;
+      wishes.forEach(function(w, i){ if (w.id === iw.id) idx = i; });
+      if (idx === -1) { wishes.push(clone(iw)); c.newWishes++; }
+      else if (cmp(iw.updatedAt, wishes[idx].updatedAt) > 0) { wishes[idx] = clone(iw); c.newer++; }
+    });
+    return { places:places, wishes:wishes, counts:c };
   }
 
   var dbPromise = null;
@@ -508,11 +805,15 @@
 
   // ---------- 상태 ----------
   var state = load();
-  var ui = { q:'', cat:'', sort:'recent' };
-  save();
+  // side: 'places' 다녀온 곳 / 'wishes' 가고 싶은 곳. 검색어와 종류는 두 쪽이 함께 쓴다
+  var ui = { side:'places', q:'', cat:'', sort:'recent' };
 
   function findPlace(id){
     for (var i = 0; i < state.places.length; i++) if (state.places[i].id === id) return state.places[i];
+    return null;
+  }
+  function findWish(id){
+    for (var i = 0; i < state.wishes.length; i++) if (state.wishes[i].id === id) return state.wishes[i];
     return null;
   }
 
@@ -522,46 +823,104 @@
     for (var i = 1; i <= 5; i++) s += '<span' + (i <= v ? ' class="on"' : '') + '>★</span>';
     return '<span class="fd-stars-ro ' + (cls || '') + '" aria-label="별점 ' + v + '점">' + s + '</span>';
   }
+  // 방문이 없는 가게도 같은 모양으로 그리도록 빈 방문을 쓴다 (저장하지 않는 화면용 값)
+  var NO_VISIT = { id:'', visitedAt:'', rating:0, oneLiner:'', menus:[], photos:[], memo:'', createdAt:'', updatedAt:'' };
+  function shownVisit(p){ return latestVisit(p) || NO_VISIT; }
+  // 목록 별점: 별점이 있는 방문(rating>0) 중 가장 최근 방문의 별점. 없으면 0 (별을 그리지 않는다)
+  function listRating(p){
+    var vs = sortedVisits(p);
+    for (var i = 0; i < vs.length; i++) if (vs[i].rating > 0) return vs[i].rating;
+    return 0;
+  }
+  function lastVisitedAt(p){ var v = latestVisit(p); return v ? v.visitedAt : ''; }
+  // 다녀온 곳 검색 범위: 가게 이름·지역·종류·메모·주소 + 모든 방문의 메뉴 이름·한마디·한줄평·메모
   function matches(p, q){
     if (!q) return true;
-    var hay = [p.name, p.area, p.category, p.oneLiner, p.memo]
-      .concat(p.menus.map(function(m){ return m.name + ' ' + m.note; })).join(' ').toLowerCase();
+    var hay = [p.name, p.area, p.category, p.memo, p.location ? p.location.address : ''];
+    p.visits.forEach(function(v){
+      hay.push(v.oneLiner, v.memo);
+      v.menus.forEach(function(m){ hay.push(m.name + ' ' + m.note); });
+    });
+    return hayHas(hay, q);
+  }
+  function hayHas(hay, q){
+    hay = hay.join(' ').toLowerCase();
     return q.toLowerCase().split(/\s+/).every(function(w){ return !w || hay.indexOf(w) !== -1; });
+  }
+  // 가고 싶은 곳 검색 범위: 이름·지역·종류·주소·먹어 보고 싶은 메뉴·메모
+  function matchesWish(w, q){
+    if (!q) return true;
+    return hayHas([w.name, w.area, w.category, w.location ? w.location.address : '', w.memo].concat(w.wantMenus), q);
+  }
+  // 넣은 순서로, 최근에 넣은 것이 위 (createdAt 문자열 비교, 같으면 배열에서 뒤에 있는 것이 위)
+  function visibleWishes(){
+    return state.wishes.map(function(w, i){ return { w:w, i:i }; }).filter(function(x){
+      return (!ui.cat || x.w.category === ui.cat) && matchesWish(x.w, ui.q);
+    }).sort(function(a, b){
+      return cmp(b.w.createdAt, a.w.createdAt) || cmp(b.i, a.i);
+    }).map(function(x){ return x.w; });
+  }
+  function wishCardHTML(w, i){
+    var where = w.area || (w.location && w.location.address) || '';
+    var meta = [where, w.category].filter(Boolean).map(esc).join(' · ');
+    var chips = w.wantMenus.slice(0, 4).map(function(m){ return '<span class="fd-menu-chip">' + esc(m) + '</span>'; });
+    if (w.wantMenus.length > 4) chips.push('<span class="fd-menu-chip">+' + (w.wantMenus.length - 4) + '</span>');
+    return '<button class="fd-card fd-press" data-wish="' + esc(w.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
+      '<div class="fd-thumb wish">' + catEmoji(w.category) + '</div>' +
+      '<div class="fd-card-body">' +
+        '<div class="fd-card-top"><span class="fd-card-title">' + esc(w.name || '이름 없는 곳') + '</span>' +
+          (w.link ? '<span class="fd-link-mark">🔗 링크</span>' : '') + '</div>' +
+        (meta ? '<div class="fd-card-meta">' + meta + '</div>' : '') +
+        (chips.length ? '<div class="fd-menu-chips">' + chips.join('') + '</div>' : '') +
+      '</div></button>';
   }
   function visible(){
     var list = state.places.filter(function(p){
       return (!ui.cat || p.category === ui.cat) && matches(p, ui.q);
-    });
+    }).map(function(p){ return { p:p, last:lastVisitedAt(p), r:listRating(p) }; });
     list.sort(function(a, b){
       if (ui.sort === 'rating') {
-        var r = cmp(b.rating, a.rating);
+        if (!a.r !== !b.r) return a.r ? -1 : 1;   // 목록 별점이 없는 가게는 맨 뒤
+        var r = cmp(b.r, a.r);
         if (r) return r;
       }
-      return cmp(b.visitedAt, a.visitedAt) || cmp(b.createdAt, a.createdAt);
+      return cmp(b.last, a.last) || cmp(b.p.createdAt, a.p.createdAt);
     });
-    return list;
+    return list.map(function(x){ return x.p; });
   }
   function cardHTML(p, i){
-    var thumb = p.photos.length
-      ? '<img data-pid="' + esc(p.photos[0]) + '" alt="">' + (p.photos.length > 1 ? '<span class="fd-thumb-count">' + p.photos.length + '</span>' : '')
+    var vs = sortedVisits(p), v = vs[0] || NO_VISIT, pv = null;
+    for (var k = 0; k < vs.length && !pv; k++) if (vs[k].photos.length) pv = vs[k];
+    var thumb = pv
+      ? '<img data-pid="' + esc(pv.photos[0]) + '" alt="">' + (pv.photos.length > 1 ? '<span class="fd-thumb-count">' + pv.photos.length + '</span>' : '')
       : catEmoji(p.category);
-    var meta = [p.area, p.category, fmtDate(p.visitedAt)].filter(Boolean).map(esc).join(' · ');
-    var menus = p.menus.filter(function(m){ return m.name; }).slice(0, 4).map(function(m){
-      return '<span class="fd-menu-chip">' + esc(m.name) + '</span>';
-    }).join('');
+    var r = listRating(p);
+    var meta = [p.area, p.category, p.visits.length ? fmtDate(v.visitedAt) : '방문 기록 없음'].filter(Boolean).map(esc).join(' · ');
+    var sub = (r ? starsRO(r) : '') + (p.visits.length >= 2 ? '<span class="fd-visit-n">' + p.visits.length + '번 방문</span>' : '');
+    // 메뉴 칩: 최근 방문의 메뉴부터, 이름이 같은 메뉴는 한 번만, 최대 4개
+    var seen = [], chips = [];
+    vs.forEach(function(vv){
+      vv.menus.forEach(function(m){
+        var key = m.name.trim();
+        if (!key || seen.indexOf(key) !== -1 || chips.length >= 4) return;
+        seen.push(key);
+        chips.push('<span class="fd-menu-chip">' + esc(m.name) + '</span>');
+      });
+    });
     return '<button class="fd-card fd-press" data-open="' + esc(p.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
       '<div class="fd-thumb">' + thumb + '</div>' +
       '<div class="fd-card-body">' +
         '<div class="fd-card-top"><span class="fd-card-title">' + esc(p.name || '이름 없는 가게') + '</span>' +
           (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : '') + '</div>' +
-        '<div class="fd-card-meta">' + (p.rating ? starsRO(p.rating) + ' ' : '') + meta + '</div>' +
-        (p.oneLiner ? '<div class="fd-card-quote">' + esc(p.oneLiner) + '</div>' : '') +
-        (menus ? '<div class="fd-menu-chips">' + menus + '</div>' : '') +
+        (sub ? '<div class="fd-card-sub">' + sub + '</div>' : '') +
+        '<div class="fd-card-meta">' + meta + '</div>' +
+        (v.oneLiner ? '<div class="fd-card-quote">' + esc(v.oneLiner) + '</div>' : '') +
+        (chips.length ? '<div class="fd-menu-chips">' + chips.join('') + '</div>' : '') +
       '</div></button>';
   }
   function renderCats(){
     var used = {};
-    state.places.forEach(function(p){ if (p.category) used[p.category] = true; });
+    (ui.side === 'wishes' ? state.wishes : state.places).forEach(function(p){ if (p.category) used[p.category] = true; });
     var html = '<button class="fd-chip' + (ui.cat ? '' : ' on') + '" data-cat="">전체</button>';
     CATS.forEach(function(c){
       if (!used[c.name] && ui.cat !== c.name) return;
@@ -569,22 +928,29 @@
     });
     $('#fd-cats').innerHTML = html;
   }
+  // 요약 줄: N곳 · 방문 M번 · 평균 ★x.x (평균은 목록 별점이 있는 가게들의 목록 별점 평균)
   function renderStats(){
-    var n = state.places.length;
-    var rated = state.places.filter(function(p){ return p.rating; });
-    var avg = rated.length ? rated.reduce(function(s, p){ return s + p.rating; }, 0) / rated.length : 0;
+    if (ui.side === 'wishes') {
+      $('#fd-stats').textContent = state.wishes.length ? '가고 싶은 곳 ' + state.wishes.length + '곳' : '가 보고 싶은 곳을 모아 두세요';
+      return;
+    }
+    var n = state.places.length, m = 0;
+    state.places.forEach(function(p){ m += p.visits.length; });
+    var rated = state.places.map(listRating).filter(Boolean);
+    var avg = rated.length ? rated.reduce(function(s, r){ return s + r; }, 0) / rated.length : 0;
     $('#fd-stats').textContent = n
-      ? '지금까지 ' + n + '곳을 기록했어요' + (avg ? ' · 평균 ★' + avg.toFixed(1) : '')
+      ? n + '곳 · 방문 ' + m + '번' + (rated.length ? ' · 평균 ★' + avg.toFixed(1) : '')
       : '맛있게 먹은 곳을 하나씩 남겨 보세요';
   }
   // 검색창은 건드리지 않고 목록만 다시 그린다
   function renderList(){
+    if (ui.side === 'wishes') { renderWishList(); return; }
     var list = visible(), el = $('#fd-list');
     $('#fd-count').textContent = state.places.length ? list.length + '곳' : '';
     $('#fd-sort').style.visibility = state.places.length ? '' : 'hidden';
     $all('#fd-sort button').forEach(function(b){ b.classList.toggle('on', b.dataset.sort === ui.sort); });
     if (!state.places.length) {
-      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍽️</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍜🍙🍰</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
     } else if (!list.length) {
       el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 맛집이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
     } else {
@@ -592,7 +958,31 @@
       hydrateImgs(el);
     }
   }
-  function render(){ renderStats(); renderCats(); renderList(); }
+  function renderWishList(){
+    var list = visibleWishes(), el = $('#fd-list');
+    $('#fd-count').textContent = state.wishes.length ? list.length + '곳' : '';
+    $('#fd-sort').style.visibility = 'hidden';   // 가고 싶은 곳은 넣은 순서 하나뿐
+    if (!state.wishes.length) {
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">💭🍜✨</div><h2>아직 가고 싶은 곳이 없어요</h2><p>아래 버튼을 눌러 가 보고 싶은 곳을 넣어 두세요</p></div>';
+    } else if (!list.length) {
+      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 곳이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
+    } else {
+      el.innerHTML = list.map(wishCardHTML).join('');
+    }
+  }
+  // 맨 위 바꾸기와 아래 버튼을 지금 쪽에 맞춘다. 검색창은 건드리지 않는다
+  function renderSide(){
+    $all('#fd-side [data-side]').forEach(function(b){
+      var on = b.dataset.side === ui.side;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var w = ui.side === 'wishes';
+    $('#fd-add-emoji').textContent = w ? '💭' : '🍴';
+    $('#fd-add-label').textContent = w ? '가고 싶은 곳 넣기' : '맛집 기록하기';
+    $('#fd-q').placeholder = w ? '가게, 먹고 싶은 메뉴, 메모로 찾기' : '가게, 메뉴, 지역으로 찾기';
+  }
+  function render(){ renderSide(); renderStats(); renderCats(); renderList(); }
 
   // ---------- 시트 ----------
   var openCount = 0;
@@ -651,50 +1041,103 @@
     });
   }
 
-  // ---------- 상세 ----------
-  function detailHTML(p){
-    var html = '';
-    if (p.photos.length) {
-      html += '<div class="fd-gallery"><div class="fd-gallery-track">' +
-        p.photos.map(function(id, i){
-          return '<button data-view="' + i + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
-        }).join('') + '</div>' +
-        (p.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + p.photos.length + '</span>' : '') + '</div>';
-    } else {
-      html += '<div class="fd-detail-hero-empty">' + catEmoji(p.category) + '</div>';
-    }
-    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area, p.visitedAt ? fmtDate(p.visitedAt) + ' 방문' : '']
-      .filter(Boolean).map(esc).join(' · ');
-    html += '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>';
-    if (meta) html += '<div class="fd-detail-meta">' + meta + '</div>';
-    if (p.rating || p.revisit) {
-      html += '<div class="fd-detail-rate">' + (p.rating ? starsRO(p.rating, 'lg') + '<span class="fd-rate-word">' + esc(RATE_WORDS[p.rating]) + '</span>' : '') +
-        (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : p.revisit === 'no' ? '<span class="fd-again" style="color:var(--muted);background:var(--surface-alt)">한 번이면 충분</span>' : '') + '</div>';
-    }
-    if (p.oneLiner) html += '<div class="fd-quote-box">' + esc(p.oneLiner) + '</div>';
-    var menus = p.menus.filter(function(m){ return m.name || m.note || m.rating; });
+  // ---------- 가게 화면 ----------
+  // http:// 또는 https://로 시작하는 링크만 새 창으로 연다. 나머지는 글자로만 보여 준다
+  function isWebLink(s){ return /^https?:\/\//i.test(s); }
+  function linkHTML(l){
+    return isWebLink(l)
+      ? '<a class="fd-link" href="' + esc(l) + '" target="_blank" rel="noopener noreferrer">🔗 ' + esc(l) + '</a>'
+      : '<span class="fd-link">' + esc(l) + '</span>';
+  }
+  function revisitToggleHTML(cur, attr){
+    return '<div class="fd-toggle">' +
+      '<button type="button" ' + attr('yes') + (cur === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
+      '<button type="button" ' + attr('no') + (cur === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div>';
+  }
+  function galleryHTML(v){
+    if (!v.photos.length) return '';
+    return '<div class="fd-gallery"><div class="fd-gallery-track">' +
+      v.photos.map(function(id, i){
+        return '<button data-view="' + i + '" data-vid="' + esc(v.id) + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
+      }).join('') + '</div>' +
+      (v.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + v.photos.length + '</span>' : '') + '</div>';
+  }
+  function visitHTML(v){
+    var html = '<div class="fd-visit" data-visit="' + esc(v.id) + '">' + galleryHTML(v) +
+      '<div class="fd-visit-top"><span class="fd-visit-date">' + (v.visitedAt ? esc(fmtDate(v.visitedAt)) + ' 방문' : '날짜 없음') + '</span>' +
+      (v.rating ? starsRO(v.rating) + '<span class="fd-rate-word">' + esc(RATE_WORDS[v.rating]) + '</span>' : '') + '</div>';
+    if (v.oneLiner) html += '<div class="fd-visit-quote">“' + esc(v.oneLiner) + '”</div>';
+    var menus = v.menus.filter(function(m){ return m.name || m.note || m.rating; });
     if (menus.length) {
-      html += '<div class="fd-section-title">먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
-        menus.map(function(m){
-          return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
-            (m.rating ? starsRO(m.rating) : '') + '</div>' +
-            (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
-        }).join('') + '</div>';
+      html += '<div class="fd-menu-list">' + menus.map(function(m){
+        return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
+          (m.rating ? starsRO(m.rating) : '') + '</div>' +
+          (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
     }
-    if (p.memo) html += '<div class="fd-section-title">메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
-    html += '<div class="fd-detail-actions"><button class="fd-btn-ghost fd-press" data-act="delete">지우기</button>' +
-      '<button class="fd-btn-primary fd-press" data-act="edit">고치기</button></div>';
+    if (v.memo) html += '<div class="fd-memo">' + esc(v.memo) + '</div>';
+    html += '<div class="fd-visit-actions">' +
+      '<button class="fd-mini-btn fd-press" data-act="edit-visit" data-vid="' + esc(v.id) + '">✏️ 고치기</button>' +
+      '<button class="fd-mini-btn danger fd-press" data-act="del-visit" data-vid="' + esc(v.id) + '">지우기</button></div></div>';
+    return html;
+  }
+  function detailHTML(p){
+    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area].filter(Boolean).map(esc).join(' · ');
+    // 위치가 있으면 주소. 카카오 정식 이름이 사용자가 적은 이름과 다르면 작게 함께
+    var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(p.category) + '</div><div class="fd-place-name">' +
+      '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>' +
+      (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') + locDetailHTML(p) + '</div></div>';
+    html += '<div class="fd-place-revisit">' + revisitToggleHTML(p.revisit, function(v){ return 'data-act="revisit" data-val="' + v + '"'; }) + '</div>';
+    if (p.links.length) html += '<div class="fd-section-title">🔗 링크</div><div class="fd-links">' + p.links.map(linkHTML).join('') + '</div>';
+    if (p.memo) html += '<div class="fd-section-title">🏠 가게 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
+    html += '<div class="fd-detail-actions">' +
+      '<button class="fd-btn-soft fd-press" data-act="edit-place">🏠 가게 정보 고치기</button>' +
+      '<button class="fd-btn-primary fd-press" data-act="add-visit">🍴 또 다녀왔어요</button></div>';
+    html += '<div class="fd-section-title">🍽️ 방문 기록 ' + p.visits.length + '번</div>';
+    html += p.visits.length ? sortedVisits(p).map(visitHTML).join('') : '<div class="fd-memo">아직 방문 기록이 없어요</div>';
+    html += '<button class="fd-danger-btn fd-press" data-act="delete-place">가게 지우기</button>';
     return html;
   }
   function fillDetail(sheet, p){
     var inner = $('.fd-sheet-inner', sheet);
     inner.innerHTML = detailHTML(p);
     hydrateImgs(inner);
-    var track = $('.fd-gallery-track', inner), count = $('.fd-gallery-count', inner);
-    if (track && count) track.addEventListener('scroll', function(){
-      var i = Math.round(track.scrollLeft / track.clientWidth);
-      count.textContent = (i + 1) + ' / ' + p.photos.length;
-    }, { passive:true });
+    $all('.fd-gallery', inner).forEach(function(g){
+      var track = $('.fd-gallery-track', g), count = $('.fd-gallery-count', g);
+      if (!count) return;
+      var n = track.children.length;
+      track.addEventListener('scroll', function(){
+        var i = Math.round(track.scrollLeft / track.clientWidth);
+        count.textContent = (i + 1) + ' / ' + n;
+      }, { passive:true });
+    });
+  }
+  // 열려 있는 가게 화면을 지금 값으로 다시 채운다. 가게가 없어졌으면 닫는다
+  function refreshDetail(id){
+    $all('.fd-sheet[data-detail]').forEach(function(s){
+      if (s.closed || s.dataset.detail !== id) return;
+      var p = findPlace(id);
+      if (p) fillDetail(s, p); else s.close();
+    });
+  }
+  // 가게 하나를 새 값으로 바꿔 저장한다. 저장하지 못하면 되돌리고 false
+  function replacePlace(cur, next){
+    var i = state.places.indexOf(cur);
+    if (i === -1) return false;
+    state.places[i] = next;
+    if (!save()) { state.places[i] = cur; return false; }
+    return true;
+  }
+  // 가게 화면의 또 갈래요 바꾸기. 같은 쪽을 다시 누르면 비운다. 바로 저장한다
+  function setRevisit(id, val){
+    var cur = findPlace(id);
+    if (!cur) return null;
+    var next = clone(cur);
+    next.revisit = cur.revisit === val ? '' : val;
+    touch(next, null);
+    if (!replacePlace(cur, next)) return null;
+    renderList();
+    return next.revisit;
   }
   function openDetail(id){
     var p = findPlace(id);
@@ -705,27 +1148,54 @@
     sheet.addEventListener('click', function(e){
       var b = e.target.closest('[data-act],[data-view]');
       if (!b) return;
-      var cur = findPlace(id);
-      if (b.dataset.act === 'close') sheet.close();
-      else if (!cur) sheet.close();
-      else if (b.dataset.act === 'edit') openEdit(id);
-      else if (b.dataset.act === 'delete') {
-        if (!confirm('‘' + (cur.name || '이름 없는 가게') + '’ 기록을 지울까요?')) return;
-        removePlace(id);
-        sheet.close();
+      var cur = findPlace(id), act = b.dataset.act;
+      if (act === 'close') { sheet.close(); return; }
+      if (!cur) { sheet.close(); return; }
+      if (act === 'revisit') {
+        var now = setRevisit(id, b.dataset.val);
+        if (now != null) $all('[data-act="revisit"]', sheet).forEach(function(x){ x.classList.toggle('on', x.dataset.val === now); });
       }
-      else if (b.dataset.view != null) openViewer(cur.photos, Number(b.dataset.view));
+      else if (act === 'add-visit') openVisitForm({ mode:'add', placeId:id });
+      else if (act === 'edit-place') openPlaceForm(id);
+      else if (act === 'edit-visit') openVisitForm({ mode:'edit', placeId:id, visitId:b.dataset.vid });
+      else if (act === 'del-visit') deleteVisit(id, b.dataset.vid);
+      else if (act === 'delete-place') {
+        var n = cur.visits.length;
+        if (!confirm('‘' + (cur.name || '이름 없는 가게') + '’' + (n ? '와 방문 기록 ' + n + '번을 모두' : '을') + ' 지울까요?')) return;
+        removePlace(id);
+      }
+      else if (b.dataset.view != null) {
+        var v = findVisit(cur, b.dataset.vid);
+        if (v) openViewer(v.photos, Number(b.dataset.view));
+      }
     });
   }
 
+  // ---------- 지우기와 되돌리기 ----------
+  // 되돌리기를 기다리는 지우기는 하나뿐이다. place는 사진 확인용으로 { visits:[...] } 모양을 갖는다
   var pendingDelete = null;
   function finishPendingDelete(){
     if (!pendingDelete) return;
-    clearTimeout(pendingDelete.timer);
-    var ids = pendingDelete.place.photos;
+    var pd = pendingDelete;
+    clearTimeout(pd.timer);
     pendingDelete = null;
-    // 다른 기록이 같은 사진을 쓰지 않을 때만 지운다
-    photoDel(ids.filter(function(pid){ return !state.places.some(function(p){ return p.photos.indexOf(pid) !== -1; }); }));
+    if (undoToast && undoToast.pd === pd) { undoToast = null; $('#fd-toast button').hidden = true; }
+    // 다른 방문이 같은 사진을 쓰지 않을 때만 지운다
+    photoDel(placePhotos(pd.place).filter(function(pid){ return !photoInUse(pid); }));
+  }
+  function startPendingDelete(pd, msg){
+    pd.timer = setTimeout(finishPendingDelete, 7000);
+    pendingDelete = pd;
+    showUndo(pd, msg, function(){
+      if (pendingDelete !== pd) return;
+      if (!pd.restore()) return;   // 저장하지 못하면 되돌리기를 그대로 남긴다
+      clearTimeout(pd.timer);
+      pendingDelete = null;
+      undoToast = null;
+      render();
+      refreshDetail(pd.placeId);
+      toast('되돌렸어요 🙌');
+    });
   }
   function removePlace(id){
     finishPendingDelete();
@@ -733,16 +1203,49 @@
     state.places.forEach(function(p, i){ if (p.id === id) idx = i; });
     if (idx === -1) return;
     var place = state.places.splice(idx, 1)[0];
-    save(); render();
-    pendingDelete = { place:place, index:idx, timer:setTimeout(finishPendingDelete, 7000) };
-    toast('기록을 지웠어요', '되돌리기', function(){
-      if (!pendingDelete || pendingDelete.place !== place) return;
-      clearTimeout(pendingDelete.timer);
-      state.places.splice(Math.min(pendingDelete.index, state.places.length), 0, place);
-      pendingDelete = null;
-      save(); render();
-      toast('되돌렸어요');
-    }, 7000);
+    if (!save()) { state.places.splice(idx, 0, place); return; }
+    render();
+    refreshDetail(id);
+    startPendingDelete({ place:place, placeId:id, restore:function(){
+      if (findPlace(id)) return true;
+      state.places.splice(Math.min(idx, state.places.length), 0, place);
+      if (save()) return true;
+      state.places.splice(state.places.indexOf(place), 1);
+      return false;
+    } }, '기록을 지웠어요');
+  }
+  function removeVisit(placeId, vid){
+    finishPendingDelete();
+    var cur = findPlace(placeId), v = cur && findVisit(cur, vid);
+    if (!v) return;
+    var idx = cur.visits.indexOf(v);
+    var next = clone(cur);
+    next.visits.splice(idx, 1);
+    touch(next, null);
+    if (!replacePlace(cur, next)) return;
+    render();
+    refreshDetail(placeId);
+    startPendingDelete({ place:{ visits:[v] }, placeId:placeId, restore:function(){
+      var c = findPlace(placeId);
+      if (!c) return false;
+      if (findVisit(c, v.id)) return true;
+      var r = clone(c);
+      r.visits.splice(Math.min(idx, r.visits.length), 0, clone(v));
+      touch(r, null);
+      return replacePlace(c, r);
+    } }, '방문 기록을 지웠어요');
+  }
+  // 방문 지우기. 가게의 마지막 방문이면 가게까지 지운다
+  function deleteVisit(placeId, vid){
+    var p = findPlace(placeId), v = p && findVisit(p, vid);
+    if (!v) return;
+    if (p.visits.length <= 1) {
+      if (!confirm('마지막 방문 기록이라 ‘' + (p.name || '이름 없는 가게') + '’ 가게까지 지워져요. 지울까요?')) return;
+      removePlace(placeId);
+      return;
+    }
+    if (!confirm((v.visitedAt ? fmtDate(v.visitedAt) + ' ' : '') + '방문 기록을 지울까요?')) return;
+    removeVisit(placeId, vid);
   }
 
   function openViewer(ids, start){
@@ -762,7 +1265,406 @@
     $('.fd-viewer-close', el).addEventListener('click', function(){ el.remove(); unlock(); });
   }
 
-  // ---------- 쓰기·고치기 ----------
+  // ---------- 같은 가게 알아보기 ----------
+  // 이름 비교: 앞뒤·안쪽 공백을 무시하고 대소문자를 가리지 않는다
+  function normName(s){ return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); }
+  // 같은 가게일 수 있는 다녀온 곳 후보. cand = { name, location }. 규칙은 maybeSame 하나
+  function samePlaceCandidates(cand, excludeId){
+    return state.places.filter(function(p){ return p.id !== excludeId && maybeSame(cand, p); });
+  }
+  // 같은 곳일 수 있는 가고 싶은 곳 후보. 규칙은 samePlaceCandidates와 같다
+  function sameWishCandidates(cand, excludeId){
+    return state.wishes.filter(function(w){ return w.id !== excludeId && maybeSame(cand, w); });
+  }
+  // 두 곳(가게·가고 싶은 곳·폼 값)이 같은 곳일 수 있는지. 판단 규칙은 여기 한 곳에만 둔다.
+  //  - 둘 다 위치(kakaoId)가 있으면 kakaoId가 같을 때만 같은 곳이다. 이름이 같아도 지점이 다르면 다른 곳
+  //  - 어느 한쪽이라도 위치가 없으면 이름을 본다 (이름이 같으면 확정하지 않고 사용자에게 묻는다)
+  function locId(x){ return x && x.location && x.location.kakaoId ? String(x.location.kakaoId) : ''; }
+  function maybeSame(a, b){
+    var ka = locId(a), kb = locId(b);
+    if (ka && kb) return ka === kb;
+    var key = normName(a && a.name);
+    return !!key && normName(b && b.name) === key;
+  }
+  // 알림을 다시 띄울지 가르는 열쇠: 이름과 위치가 그대로면 같은 열쇠다
+  function sameKeyOf(c){
+    var n = normName(c && c.name), k = locId(c);
+    return n || k ? n + '#' + k : '';
+  }
+  function wishMetaHTML(w){
+    return [w.area || (w.location && w.location.address) || '', w.category].filter(Boolean).map(esc).join(' · ');
+  }
+  // 새 가게로 쓰는 방문 폼(또는 다녀온 가게에 붙인 뒤)에서 가고 싶은 곳이 걸렸을 때 묻는 칸
+  function wishMoveHTML(list){
+    return '<div class="fd-same"><b>💭 가고 싶은 곳에 있던 곳이에요. 다녀온 곳으로 옮길까요?</b>' +
+      '<p>옮기면 저장할 때 가고 싶은 곳에서 빠지고, 링크와 메모가 가게로 옮겨 가요.' +
+      (list.length > 1 ? ' 같은 이름이 ' + list.length + '곳 있어요. 맞는 곳을 골라 주세요.' : '') + '</p>' +
+      list.map(function(w){
+        var meta = wishMetaHTML(w);
+        return '<div class="fd-same-item"><div><strong>' + catEmoji(w.category) + ' ' + esc(w.name) + '</strong>' + (meta ? '<small>' + meta + '</small>' : '') + '</div>' +
+          '<button type="button" class="fd-press" data-wish-move="' + esc(w.id) + '">옮기기</button></div>';
+      }).join('') +
+      '<button type="button" class="fd-same-new fd-press" data-act="wish-no">옮기지 않을래요</button></div>';
+  }
+  function wishMovingHTML(w, fixed){
+    return '<div class="fd-same"><b>💭 가고 싶은 곳에서 옮겨요</b><p>‘' + esc(w.name || '이름 없는 곳') + '’은 이 방문을 저장하면 가고 싶은 곳에서 빠져요.</p>' +
+      (fixed ? '' : '<button type="button" class="fd-same-new fd-press" data-act="wish-undo">옮기지 않기</button>') + '</div>';
+  }
+  function sameNoticeHTML(list){
+    return '<div class="fd-same"><b>이미 기록한 가게예요</b><p>혹시 같은 가게인가요?' +
+      (list.length > 1 ? ' 같은 이름이 ' + list.length + '곳 있어요. 맞는 곳을 골라 주세요.' : '') + '</p>' +
+      list.map(function(p){
+        var last = lastVisitedAt(p);
+        var meta = [p.area, p.category, last ? '마지막 ' + fmtDate(last) : '', '방문 ' + p.visits.length + '번'].filter(Boolean).map(esc).join(' · ');
+        return '<div class="fd-same-item"><div><strong>' + catEmoji(p.category) + ' ' + esc(p.name) + '</strong><small>' + meta + '</small></div>' +
+          '<button type="button" class="fd-press" data-same-pick="' + esc(p.id) + '">이 가게에 방문으로 추가</button></div>';
+      }).join('') +
+      '<button type="button" class="fd-same-new fd-press" data-act="same-new">따로 새 가게로</button></div>';
+  }
+
+  // ---------- 카카오 (위치 검색, 지도) ----------
+  // SDK는 위치 검색이나 지도를 처음 쓸 때만 불러온다. 앱을 열 때는 불러오지 않는다.
+  // 실패한 약속은 버려서 다음에 다시 시도할 수 있게 한다
+  var KAKAO_TIMEOUT_MS = 8000;
+  var kakaoPromise = null;
+  function kakaoReady(){ return !!(window.kakao && window.kakao.maps && window.kakao.maps.services); }
+  // 지금 바로 알 수 있는 못 쓰는 이유: 'nokey' / 'offline' / ''
+  function kakaoBlocked(){
+    if (kakaoReady()) return '';
+    if (!KAKAO_JS_KEY) return 'nokey';
+    if (navigator.onLine === false) return 'offline';
+    return '';
+  }
+  function kakaoError(reason){ var e = new Error('kakao:' + reason); e.reason = reason; return e; }
+  function loadKakao(timeoutMs){
+    if (kakaoReady()) return Promise.resolve(window.kakao);
+    if (kakaoPromise) return kakaoPromise;
+    var p = new Promise(function(resolve, reject){
+      var why = kakaoBlocked();
+      if (why) { reject(kakaoError(why)); return; }
+      var done = false, script = null;
+      var timer = setTimeout(function(){ fail('timeout'); }, timeoutMs || KAKAO_TIMEOUT_MS);
+      function fail(reason){
+        if (done) return;
+        done = true; clearTimeout(timer);
+        if (script && !window.kakao) script.remove();
+        reject(kakaoError(reason));
+      }
+      function start(){
+        try {
+          window.kakao.maps.load(function(){
+            if (done) return;
+            if (!kakaoReady()) { fail('script'); return; }
+            done = true; clearTimeout(timer);
+            resolve(window.kakao);
+          });
+        } catch (e) { fail('script'); }
+      }
+      // 앞선 시도에서 스크립트가 늦게 들어와 있으면 다시 넣지 않고 시작만 한다
+      if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === 'function') { start(); return; }
+      script = document.createElement('script');
+      script.async = true;
+      script.onerror = function(){ fail(navigator.onLine === false ? 'offline' : 'script'); };
+      script.onload = function(){
+        if (done) return;
+        if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === 'function') start();
+        else fail('script');
+      };
+      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(KAKAO_JS_KEY) + '&libraries=services&autoload=false';
+      document.head.appendChild(script);
+    });
+    kakaoPromise = p;
+    p.catch(function(){ if (kakaoPromise === p) kakaoPromise = null; });
+    return p;
+  }
+  // 카카오를 못 쓸 때 위치 검색 자리(와 지도)에 보이는 안내
+  function kakaoNoticeHTML(err, retry){
+    var why = err && err.reason;
+    var sub = why === 'nokey' ? 'index.html의 KAKAO_JS_KEY에 카카오 JavaScript 키를 넣으면 쓸 수 있어요.'
+      : why === 'offline' ? '인터넷에 연결되어 있지 않아요. 연결되면 다시 해 보세요.'
+      : '카카오 지도를 불러오지 못했어요. 잠시 뒤 다시 해 보세요.';
+    return '<div class="fd-loc-notice"><b>🗺️ 지도를 쓰려면 인터넷 연결과 카카오 키가 필요해요</b><p>' + esc(sub) + ' 위치 없이도 기록은 그대로 저장돼요.</p>' +
+      (retry && why !== 'nokey' ? '<button type="button" class="fd-mini-btn fd-press" data-loc-act="retry">다시 해 보기</button>' : '') + '</div>';
+  }
+  // ---------- 지도 ----------
+  // 다녀온 곳과 가고 싶은 곳을 함께 핀으로 보여 준다. 지금 걸린 종류·검색어를 그대로 따른다
+  function hasPoint(x){
+    var l = x.location;
+    return !!(l && typeof l.lat === 'number' && typeof l.lng === 'number' && isFinite(l.lat) && isFinite(l.lng));
+  }
+  function mapItems(){
+    var items = [];
+    visible().forEach(function(p){ items.push({ kind:'place', id:p.id, it:p }); });
+    visibleWishes().forEach(function(w){ items.push({ kind:'wish', id:w.id, it:w }); });
+    return items;
+  }
+  function mapCardHTML(x){
+    var it = x.it, thumb = catEmoji(it.category), sub = '';
+    if (x.kind === 'place') {
+      var vs = sortedVisits(it);
+      for (var k = 0; k < vs.length; k++) if (vs[k].photos.length) { thumb = '<img data-pid="' + esc(vs[k].photos[0]) + '" alt="">'; break; }
+      var r = listRating(it);
+      sub = (r ? starsRO(r) + ' ' : '') + (it.visits.length >= 2 ? '<span class="fd-visit-n">' + it.visits.length + '번 방문</span>' : '');
+    } else {
+      sub = '<span class="fd-link-mark">💭 가고 싶은 곳</span>';
+    }
+    return '<div class="fd-thumb">' + thumb + '</div>' +
+      '<div class="fd-card-body">' +
+        '<div class="fd-card-top"><span class="fd-card-title">' + esc(it.name || '이름 없는 곳') + '</span></div>' +
+        (sub ? '<div class="fd-card-sub">' + sub + '</div>' : '') +
+        (it.location && it.location.address ? '<div class="fd-card-meta">📍 ' + esc(it.location.address) + '</div>' : '') +
+      '</div><span class="fd-go">›</span>';
+  }
+  function openMap(){
+    var sheet = openSheet({ title:'🗺️ 지도',
+      body:'<div class="fd-map-wrap"><div class="fd-map" id="fd-map"></div>' +
+        '<div class="fd-map-legend"><span><i class="v"></i>다녀온 곳</span><span><i class="w"></i>가고 싶은 곳</span></div>' +
+        '<div class="fd-map-note" id="fd-map-note" hidden></div>' +
+        '<div class="fd-map-state" id="fd-map-state" hidden></div>' +
+        '<button type="button" class="fd-map-card fd-press" id="fd-map-card" hidden></button></div>' });
+    sheet.classList.add('fd-sheet-map');
+    var mapEl = $('#fd-map', sheet), stateEl = $('#fd-map-state', sheet), noteEl = $('#fd-map-note', sheet), cardEl = $('#fd-map-card', sheet);
+    var map = null, picked = null, pinEls = [];
+
+    function showState(html){ stateEl.innerHTML = html; stateEl.hidden = !html; }
+    function hideCard(){
+      picked = null; cardEl.hidden = true;
+      pinEls.forEach(function(p){ p.classList.remove('on'); });
+    }
+    function pick(x, pinEl){
+      picked = x;
+      pinEls.forEach(function(p){ p.classList.toggle('on', p === pinEl); });
+      cardEl.innerHTML = mapCardHTML(x);
+      cardEl.hidden = false;
+      hydrateImgs(cardEl);
+    }
+    function draw(kakao){
+      if (sheet.closed) return;
+      var items = mapItems(), shown = items.filter(function(x){ return hasPoint(x.it); });
+      var missing = items.length - shown.length;
+      map = new kakao.maps.Map(mapEl, { center:new kakao.maps.LatLng(37.5665, 126.978), level:8 });
+      kakao.maps.event.addListener(map, 'click', hideCard);
+      var bounds = new kakao.maps.LatLngBounds();
+      shown.forEach(function(x){
+        var pos = new kakao.maps.LatLng(x.it.location.lat, x.it.location.lng);
+        var pin = document.createElement('button');
+        pin.type = 'button';
+        pin.className = 'fd-pin' + (x.kind === 'wish' ? ' wish' : '');
+        pin.setAttribute('aria-label', x.it.name || '이름 없는 곳');
+        pin.innerHTML = '<span>' + catEmoji(x.it.category) + '</span>';
+        pin.addEventListener('click', function(e){ e.stopPropagation(); pick(x, pin); });
+        pinEls.push(pin);
+        new kakao.maps.CustomOverlay({ map:map, position:pos, content:pin, xAnchor:0.5, yAnchor:1.1, clickable:true });
+        bounds.extend(pos);
+      });
+      if (shown.length === 1) { map.setLevel(4); map.setCenter(bounds.getSouthWest()); }
+      else if (shown.length > 1) map.setBounds(bounds, 60, 40, 120, 40);
+      var notes = [];
+      if (!shown.length) notes.push('지도에 보일 곳이 없어요 🥲');
+      if (missing) notes.push('위치가 없는 ' + missing + '곳은 지도에 안 나와요');
+      noteEl.innerHTML = notes.map(function(n){ return '<span>' + esc(n) + '</span>'; }).join('<br>');
+      noteEl.hidden = !notes.length;
+    }
+    function start(){
+      showState('<div class="fd-loc-notice"><b>🗺️ 카카오 지도를 불러오는 중…</b></div>');
+      loadKakao().then(function(kakao){
+        if (sheet.closed) return;
+        showState('');
+        // 시트가 다 올라온 뒤 크기를 재야 지도가 제대로 그려진다
+        setTimeout(function(){ draw(kakao); }, 300);
+      }, function(err){
+        if (sheet.closed) return;
+        showState(kakaoNoticeHTML(err, true));
+      });
+    }
+
+    sheet.addEventListener('click', function(e){
+      var b = e.target.closest('[data-act],[data-loc-act]');
+      if (b && b.dataset.act === 'close') { sheet.close(); return; }
+      if (b && b.dataset.locAct === 'retry') { start(); return; }
+      if (e.target.closest('#fd-map-card') && picked) {
+        var x = picked;
+        hideCard();
+        if (x.kind === 'place') openDetail(x.id); else openWishDetail(x.id);
+      }
+    });
+    start();
+  }
+
+  // 카카오 분류 → 앱 종류. 위에서부터 보고 처음 맞는 것. 아무것도 맞지 않으면 ''
+  function kakaoCategory(categoryName, groupCode){
+    var name = typeof categoryName === 'string' ? categoryName : '';
+    var code = typeof groupCode === 'string' ? groupCode : '';
+    var rules = [
+      ['카페·디저트', ['카페', '디저트', '베이커리']],
+      ['술집', ['술집']],
+      ['분식', ['분식']],
+      ['고기', ['육류,고기', '고기']],
+      ['한식', ['한식']],
+      ['일식', ['일식']],
+      ['중식', ['중식']],
+      ['양식', ['양식']],
+      ['아시안', ['아시아음식']]
+    ];
+    if (code === 'CE7') return '카페·디저트';
+    for (var i = 0; i < rules.length; i++) {
+      for (var j = 0; j < rules[i][1].length; j++) if (name.indexOf(rules[i][1][j]) !== -1) return rules[i][0];
+    }
+    if (code === 'FD6' || name.indexOf('음식점') !== -1) return '기타';
+    return '';
+  }
+  // 카카오 장소 검색 결과 하나 → 저장할 위치 모양
+  function locationFromKakao(r){
+    return normalizeLocation({
+      kakaoId: String(r.id),
+      placeName: str(r.place_name),
+      address: str(r.road_address_name) || str(r.address_name),
+      lat: Number(r.y),
+      lng: Number(r.x)
+    });
+  }
+  // 카카오 정식 이름이 사용자가 적은 이름과 다를 때만 그 이름 (공백·대소문자는 같은 것으로 본다)
+  function kakaoNameIfDiffers(x){
+    var l = x && x.location;
+    return l && l.placeName && normName(l.placeName) !== normName(x.name) ? l.placeName : '';
+  }
+  function locDetailHTML(x){
+    var l = x.location;
+    if (!l || !(l.address || l.placeName)) return '';
+    var kn = kakaoNameIfDiffers(x);
+    return (l.address ? '<div class="fd-detail-addr">📍 ' + esc(l.address) + '</div>' : '') +
+      (kn ? '<div class="fd-detail-kname">카카오 지도 이름 · ' + esc(kn) + '</div>' : '');
+  }
+
+  // 위치 고르기 칸. 폼 HTML에 locPickerHTML()을 넣고, 시트를 연 뒤 mountLocPicker로 붙인다.
+  // 이 칸 안의 위치 카드·검색 결과·안내만 고쳐 그린다. 폼과 검색창은 다시 그리지 않는다
+  function locPickerHTML(){
+    return '<div class="fd-field fd-loc" data-loc-root><label class="fd-label">위치 <small>카카오 지도에서 찾아 붙여요 · 없어도 돼요</small></label>' +
+      '<div data-loc-view></div>' +
+      '<div class="fd-loc-panel" data-loc-panel hidden>' +
+        '<div class="fd-loc-bar" data-loc-bar><input class="fd-input" type="search" data-loc-q placeholder="가게 이름이나 동네로 찾기" maxlength="60" autocomplete="off" enterkeyhint="search">' +
+          '<button type="button" class="fd-loc-go fd-press" data-loc-act="go">찾기</button></div>' +
+        '<div data-loc-msg></div>' +
+        '<div class="fd-loc-results" data-loc-results></div>' +
+        '<button type="button" class="fd-loc-cancel fd-press" data-loc-act="cancel">닫기</button>' +
+      '</div></div>';
+  }
+  function locPickedHTML(l){
+    return '<div class="fd-loc-picked"><span class="fd-loc-pin">📍</span><div><strong>' + esc(l.placeName || '고른 위치') + '</strong>' +
+      (l.address ? '<small>' + esc(l.address) + '</small>' : '') + '</div>' +
+      '<button type="button" class="fd-mini-btn fd-press" data-loc-act="open">바꾸기</button>' +
+      '<button type="button" class="fd-mini-btn fd-press" data-loc-act="remove">떼기</button></div>';
+  }
+  function kakaoCatLabel(s){
+    var parts = String(s || '').split('>').map(function(x){ return x.trim(); }).filter(Boolean);
+    if (parts.length > 1 && parts[0] === '음식점') parts.shift();
+    return parts.slice(-2).join(' › ');
+  }
+  function locResultHTML(r, i){
+    var addr = r.road_address_name || r.address_name || '';
+    var cat = kakaoCatLabel(r.category_name);
+    return '<button type="button" class="fd-loc-item fd-press" data-loc-pick="' + i + '" data-kakao-id="' + esc(r.id) + '">' +
+      '<strong>' + esc(r.place_name || '이름 없는 곳') + '</strong>' +
+      (addr ? '<small>' + esc(addr) + '</small>' : '') +
+      (cat ? '<small class="fd-loc-cat">' + esc(cat) + '</small>' : '') + '</button>';
+  }
+  // o = { get(): 지금 위치, query(): 처음 검색어(이름 칸), onPick(location, 카카오 결과), onRemove() }
+  function mountLocPicker(root, o){
+    var view = $('[data-loc-view]', root), panel = $('[data-loc-panel]', root), bar = $('[data-loc-bar]', root);
+    var q = $('[data-loc-q]', root), msg = $('[data-loc-msg]', root), res = $('[data-loc-results]', root);
+    var results = [], seq = 0;
+    function note(t){ msg.innerHTML = t ? '<p class="fd-loc-note">' + esc(t) + '</p>' : ''; }
+    function drawView(){
+      var l = o.get();
+      view.innerHTML = l ? locPickedHTML(l) : '<button type="button" class="fd-add-line fd-press" data-loc-act="open">📍 위치 검색</button>';
+    }
+    function clearResults(){ results = []; res.innerHTML = ''; }
+    function close(){ seq++; panel.hidden = true; view.hidden = false; clearResults(); note(''); }
+    function fail(err){
+      if (panel.hidden) return;
+      bar.hidden = true; clearResults();
+      msg.innerHTML = kakaoNoticeHTML(err, true);
+    }
+    function open(){
+      view.hidden = true; panel.hidden = false; bar.hidden = false;
+      clearResults(); note('');
+      var why = kakaoBlocked();
+      if (why) { fail(kakaoError(why)); return; }   // 키패드를 올리지 않고 안내만
+      if (!q.value.trim()) q.value = String(o.query() || '').trim();
+      q.focus();   // 누른 순간에 바로 (아이폰은 나중에 focus하면 키패드가 안 올라온다)
+      prepare(!!q.value.trim());
+    }
+    function prepare(thenSearch){
+      var my = ++seq;
+      note('카카오 지도를 불러오는 중…');
+      loadKakao().then(function(){
+        if (my !== seq || panel.hidden) return;
+        note('');
+        if (thenSearch) search();
+      }, function(err){ if (my === seq) fail(err); });
+    }
+    function search(){
+      var text = q.value.trim();
+      if (!text) { note('찾을 가게 이름을 적어 주세요'); return; }
+      var my = ++seq;
+      bar.hidden = false;
+      note('찾는 중…');
+      loadKakao().then(function(k){
+        if (my !== seq || panel.hidden) return;
+        var guard = setTimeout(function(){ if (my === seq && !panel.hidden) { clearResults(); note('검색하지 못했어요. 잠시 뒤 다시 해 보세요'); } }, KAKAO_TIMEOUT_MS);
+        try {
+          new k.maps.services.Places().keywordSearch(text, function(data, status){
+            clearTimeout(guard);
+            if (my !== seq || panel.hidden) return;
+            var S = k.maps.services.Status || {};
+            if (status === (S.OK || 'OK') && Array.isArray(data) && data.length) {
+              results = data;
+              note('');
+              res.innerHTML = data.map(locResultHTML).join('');
+              res.scrollTop = 0;
+            } else {
+              clearResults();
+              note(status === (S.ZERO_RESULT || 'ZERO_RESULT') || (Array.isArray(data) && !data.length)
+                ? '‘' + text + '’ 검색 결과가 없어요. 다른 말로 찾아보세요' : '검색하지 못했어요. 잠시 뒤 다시 해 보세요');
+            }
+          });
+        } catch (e) {
+          clearTimeout(guard);
+          clearResults(); note('검색하지 못했어요. 잠시 뒤 다시 해 보세요');
+        }
+      }, function(err){ if (my === seq) fail(err); });
+    }
+    root.addEventListener('click', function(e){
+      var pick = e.target.closest('[data-loc-pick]');
+      if (pick) {
+        var r = results[Number(pick.dataset.locPick)];
+        if (!r) return;
+        var loc = locationFromKakao(r);
+        close();
+        q.value = '';
+        o.onPick(loc, r);
+        drawView();
+        return;
+      }
+      var b = e.target.closest('[data-loc-act]');
+      if (!b) return;
+      var act = b.dataset.locAct;
+      if (act === 'open') open();
+      else if (act === 'go') search();
+      else if (act === 'cancel') close();
+      else if (act === 'retry') { bar.hidden = false; note(''); prepare(!!q.value.trim()); }
+      else if (act === 'remove') { o.onRemove(); drawView(); }
+    });
+    q.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      search();
+      q.blur();   // 키패드를 내려 결과가 보이게
+    });
+    drawView();
+  }
+
+  // ---------- 방문 쓰기·고치기 ----------
   function newMenu(){ return { id:uid(), name:'', rating:0, note:'' }; }
   function starsIn(v, cls){
     var s = '';
@@ -782,20 +1684,31 @@
       (i === 0 ? '<span class="fd-cover">대표</span>' : '') +
       '<button type="button" class="fd-photo-del" data-act="del-photo" aria-label="사진 빼기">✕</button></div>';
   }
-  function editHTML(d){
-    return '' +
-      '<div class="fd-field" style="margin-top:8px"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
+  function catPickHTML(cur){
+    return '<div class="fd-cat-pick">' + CATS.map(function(c){
+      return '<button type="button" class="fd-chip' + (cur === c.name ? ' on' : '') + '" data-pick-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
+    }).join('') + '</div>';
+  }
+  // mode: 'new' 새 가게 + 새 방문 / 'add' 이 가게에 새 방문 / 'edit' 이미 있는 방문 고치기
+  function visitFormHTML(d, mode, place){
+    var html = '' +
+      // 'add'·'edit'에서는 가게 칸 대신 가게 이름만 보인다 ('new'에서 같은 가게를 고르면 이 줄로 바뀐다)
+      '<div class="fd-form-place" id="fd-ed-placehead"' + (mode === 'new' ? ' hidden' : '') + '>' +
+        '<span id="fd-ed-placeemoji">' + catEmoji(place ? place.category : '') + '</span><span id="fd-ed-placename">' + esc(place ? place.name || '이름 없는 가게' : '') + '</span></div>';
+    if (mode === 'new') {
+      html += '<div id="fd-ed-placebox">' +
+        '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
+          '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off">' +
+          '<div id="fd-ed-same"></div><div id="fd-ed-wish"></div></div>' +
+        '<div id="fd-ed-location">' + locPickerHTML() + '</div>' +
+        '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
+        '<div class="fd-field"><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+      '</div>';
+    }
+    html +=
+      '<div class="fd-field"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
         '<div class="fd-photos" id="fd-ed-photos"></div></div>' +
-      '<div class="fd-field"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
-        '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off"></div>' +
-      '<div class="fd-field"><label class="fd-label">종류</label><div class="fd-cat-pick" id="fd-ed-cat">' +
-        CATS.map(function(c){
-          return '<button type="button" class="fd-chip' + (d.category === c.name ? ' on' : '') + '" data-pick-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
-        }).join('') + '</div></div>' +
-      '<div class="fd-field fd-row">' +
-        '<div><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
-        '<div><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
-      '</div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
       '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
         '<span class="fd-rate-word">' + esc(RATE_WORDS[d.rating]) + '</span></div></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-one">한줄평</label>' +
@@ -803,33 +1716,144 @@
         '<div class="fd-counter" id="fd-ed-one-count">' + d.oneLiner.length + ' / 60</div></div>' +
       '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점·한마디도 남길 수 있어요</small></label>' +
         '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
-        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">＋ 메뉴 추가</button></div>' +
-      '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div class="fd-toggle" id="fd-ed-revisit">' +
-        '<button type="button" data-revisit="yes"' + (d.revisit === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
-        '<button type="button" data-revisit="no"' + (d.revisit === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div></div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">🥢 메뉴 추가</button></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모 <small>가격, 웨이팅, 같이 간 사람…</small></label>' +
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
+    // 또 갈래요는 새 방문을 쓸 때만. 옛 방문을 고칠 때 지금 마음이 덮이면 안 된다
+    if (mode !== 'edit') {
+      html += '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div id="fd-ed-revisit">' +
+        revisitToggleHTML(d.revisit, function(v){ return 'data-revisit="' + v + '"'; }) + '</div></div>';
+    }
+    return html;
   }
 
-  function openEdit(id){
-    var src = id ? findPlace(id) : null;
-    var draft = src ? clone(src) : {
-      id:uid(), name:'', category:'', area:'', visitedAt:today(), rating:0, oneLiner:'',
-      menus:[], photos:[], revisit:'', memo:'', createdAt:'', updatedAt:''
-    };
+  // 입력 폼은 가게 필드와 방문 필드를 한 장의 draft로 다룬다
+  var PLACE_FORM_FIELDS = ['name', 'category', 'area', 'revisit'];
+  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
+  function draftFrom(place, visit){
+    // location은 새 가게를 쓸 때만 쓴다 (이미 있는 가게의 위치는 가게 정보 고치기에서 바꾼다)
+    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], memo:'' };
+    if (place) PLACE_FORM_FIELDS.forEach(function(k){ d[k] = clone(place[k]); });
+    if (visit) VISIT_FORM_FIELDS.forEach(function(k){ d[k] = clone(visit[k]); });
+    return d;
+  }
+  function draftHasVisit(d){
+    return !!(d.visitedAt || d.rating || d.oneLiner || d.menus.length || d.photos.length || d.memo);
+  }
+  // draft를 가게(+방문)에 반영한 새 가게를 돌려준다. place가 없으면 새 가게 + 새 방문.
+  // 방문이 없던 가게는 방문 칸에 뭔가 적었을 때만 방문을 새로 만든다 (가짜 방문 금지)
+  function applyDraft(place, visit, d){
+    var p = place ? clone(place) : { id:uid(), location:d.location ? clone(d.location) : null, links:[], memo:'', fromWishIds:[], visits:[] };
+    PLACE_FORM_FIELDS.forEach(function(k){ p[k] = d[k]; });
+    var v = null;
+    if (visit) {
+      v = findVisit(p, visit.id);
+    } else if (!place || draftHasVisit(d)) {
+      v = { id:uid() };
+      p.visits.push(v);
+    }
+    if (v) VISIT_FORM_FIELDS.forEach(function(k){ v[k] = clone(d[k]); });
+    touch(p, v);
+    return normalizePlace(p);
+  }
+  // 방문 하나를 저장한다.
+  //  placeId 없음      → 새 가게 + 새 방문 (draft의 가게 칸을 쓴다)
+  //  visitId 없음      → 그 가게에 새 방문. 가게 칸은 그대로, revisit만 draft 값이 된다
+  //  visitId 있음      → 그 방문 고치기. 가게 칸과 revisit은 지금 가게 값 그대로
+  //  wishId 있음       → 새 방문(visitId 없음)과 함께 그 가고 싶은 곳을 가게로 옮긴다 (applyWish).
+  //                       방문 저장과 가고 싶은 곳 빼기는 한 번에 저장한다. 하나만 되는 일은 없다
+  // 성공하면 { place, movedWish }, 아니면 { error }
+  function saveVisit(placeId, visitId, d, wishId){
+    var cur = placeId ? findPlace(placeId) : null;
+    if (placeId && !cur) return { error:'이미 지운 기록이에요' };
+    var visit = null;
+    if (visitId) {
+      visit = findVisit(cur, visitId);
+      if (!visit) return { error:'이미 지운 기록이에요' };
+    }
+    var wish = wishId && !visitId ? findWish(wishId) : null;   // 그사이 지워졌으면 방문만 저장한다
+    if (cur) {
+      d.name = cur.name; d.category = cur.category; d.area = cur.area;
+      if (visitId) d.revisit = cur.revisit;
+      if (!visitId && !draftHasVisit(d)) return { error:'방문 내용을 하나라도 적어 주세요' };
+    } else if (wish) {
+      // 폼에 적거나 고른 값이 우선. 가고 싶은 곳 값은 비어 있는 칸만 채운다
+      if (!d.name.trim()) d.name = wish.name;
+      if (!d.category) d.category = wish.category;
+      if (!d.area.trim()) d.area = wish.area;
+    }
+    var place = applyDraft(cur, visit, d);
+    // 폼에서 위치를 직접 떼거나 고른 경우(locationTouched)에는 가고 싶은 곳의 위치로 채우지 않는다
+    if (wish) place = applyWish(place, wish, !cur && !d.locationTouched);
+    var wi = wish ? state.wishes.indexOf(wish) : -1;
+    if (wi !== -1) state.wishes.splice(wi, 1);
+    var ok;
+    if (cur) {
+      var pi = state.places.indexOf(cur);
+      state.places[pi] = place;
+      ok = save();
+      if (!ok) state.places[pi] = cur;
+    } else {
+      state.places.push(place);
+      ok = save();
+      if (!ok) state.places.pop();
+    }
+    if (!ok) {
+      if (wi !== -1) state.wishes.splice(wi, 0, wish);
+      return { error:'' };
+    }
+    return { place:place, movedWish:wish };
+  }
+  // 가고 싶은 곳을 가게 p(새 사본)에 붙인다.
+  //  - 링크는 links 끝에 (이미 있으면 붙이지 않는다)
+  //  - 메모는 가게 memo 끝에 줄을 바꿔 (비어 있지 않을 때만)
+  //  - fromWishIds에 가고 싶은 곳 id
+  //  - isNew일 때만(새 가게이고 폼에서 위치를 건드리지 않았을 때): 위치가 비어 있으면 가고 싶은 곳의 위치
+  function applyWish(p, w, isNew){
+    p = clone(p);
+    if (w.link && p.links.indexOf(w.link) === -1) p.links.push(w.link);
+    if (w.memo) p.memo = p.memo ? p.memo + '\n' + w.memo : w.memo;
+    if (p.fromWishIds.indexOf(w.id) === -1) p.fromWishIds.push(w.id);
+    if (isNew && !p.location && w.location) p.location = clone(w.location);
+    return normalizePlace(p);
+  }
+
+  function openVisitForm(o){
+    var mode = o.mode;
+    var target = o.placeId ? findPlace(o.placeId) : null;
+    if (mode !== 'new' && !target) { toast('이미 지운 기록이에요'); return; }
+    var srcVisit = mode === 'edit' ? findVisit(target, o.visitId) : null;
+    if (mode === 'edit' && !srcVisit) { toast('이미 지운 기록이에요'); return; }
+    var draft = draftFrom(mode === 'new' ? null : target, srcVisit);
+    if (mode === 'add') draft.visitedAt = today();
+    // 가고 싶은 곳에서 "다녀왔어요": 가게 칸은 그 곳의 값, 먹은 메뉴 칸은 먹어 보고 싶은 메뉴 (이름만)
+    var fromWish = mode === 'new' && o.wishId ? findWish(o.wishId) : null;
+    if (o.wishId && !fromWish) { toast('이미 지운 기록이에요'); return; }
+    if (fromWish) {
+      draft.name = fromWish.name; draft.category = fromWish.category; draft.area = fromWish.area;
+      draft.location = fromWish.location ? clone(fromWish.location) : null;
+      draft.menus = fromWish.wantMenus.map(function(n){ var m = newMenu(); m.name = n; return m; });
+    }
     if (!draft.menus.length) draft.menus.push(newMenu());
     var startPhotos = draft.photos.slice();
     var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
     var busy = 0;
     var dirty = false;
+    var TITLES = { 'new':'새 맛집 기록', add:'또 다녀왔어요', edit:'방문 고치기' };
 
     var sheet = openSheet({
-      title: src ? '기록 고치기' : '새 맛집 기록',
+      title: TITLES[mode],
       leftLabel: '취소',
       right: '<button class="fd-text-btn strong" data-act="save">저장</button>',
-      body: editHTML(draft)
+      body: visitFormHTML(draft, mode, target)
     });
     var photosEl = $('#fd-ed-photos', sheet), menusEl = $('#fd-ed-menus', sheet);
+    var sameEl = $('#fd-ed-same', sheet);
+    var sameKey = '', dismissedKey = '';
+    // 저장할 때 다녀온 곳으로 옮길 가고 싶은 곳. wishFixed: "다녀왔어요"로 연 폼이라 바꾸지 않는다
+    var wishEl = $('#fd-ed-wish', sheet);
+    var wishMove = fromWish, wishFixed = !!fromWish;
+    var wishKey = '', wishChosenKey = '', wishDismissedKey = '';
 
     function drawPhotos(){
       photosEl.innerHTML = draft.photos.map(photoTileHTML).join('') +
@@ -841,6 +1865,71 @@
       hydrateImgs(photosEl);
     }
     drawPhotos();
+
+    // 새 가게의 위치. 고르면 빈 이름·빈 종류만 채우고 같은 가게를 다시 본다
+    var locRoot = $('#fd-ed-location [data-loc-root]', sheet);
+    if (locRoot) mountLocPicker(locRoot, {
+      get: function(){ return draft.location; },
+      query: function(){ return draft.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        draft.location = loc; draft.locationTouched = true;
+        if (!draft.name.trim()) { draft.name = loc.placeName; $('#fd-ed-name', sheet).value = draft.name; }
+        var c = draft.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          draft.category = c;
+          $all('#fd-ed-placebox [data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+        checkSame();
+      },
+      onRemove: function(){
+        dirty = true;
+        draft.location = null; draft.locationTouched = true;
+        checkSame();
+      }
+    });
+
+    function formCand(){ return { name:draft.name, location:draft.location }; }
+    // 새 가게 이름에서 손을 떼거나 위치를 고르면 같은 가게가 있는지 본다. 알림 칸만 바꾼다
+    function checkSame(){
+      if (mode !== 'new' || !sameEl) return;
+      var cand = formCand(), key = sameKeyOf(cand);
+      if (key === sameKey) return;
+      var list = key && key !== dismissedKey ? samePlaceCandidates(cand) : [];
+      sameKey = list.length ? key : '';
+      sameEl.innerHTML = list.length ? sameNoticeHTML(list) : '';
+      if (!list.length) checkWish(cand);   // 다녀온 곳을 먼저 본다
+    }
+    // 가고 싶은 곳에 같은 곳이 있는지 본다. 묻는 칸만 바꾼다
+    function checkWish(cand){
+      if (wishFixed || !wishEl) return;
+      var key = sameKeyOf(cand);
+      if (wishMove && key === wishChosenKey) return;
+      if (key && key === wishKey) return;
+      wishMove = null; wishChosenKey = '';
+      var list = key && key !== wishDismissedKey ? sameWishCandidates(cand) : [];
+      wishKey = list.length ? key : '';
+      wishEl.innerHTML = list.length ? wishMoveHTML(list) : '';
+    }
+    // 같은 가게를 골랐을 때: 방문 칸은 그대로 두고 그 가게의 새 방문으로 바꾼다.
+    // 적어 둔 가게 칸은 쓰지 않고, 또 갈래요는 그 가게 값으로 다시 채운다
+    function switchToPlace(p){
+      target = p; mode = 'add';
+      sameKey = ''; sameEl.innerHTML = '';
+      draft.name = p.name; draft.category = p.category; draft.area = p.area;
+      draft.revisit = p.revisit;
+      $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === draft.revisit); });
+      $('#fd-ed-placebox', sheet).hidden = true;
+      $('#fd-ed-placename', sheet).textContent = p.name || '이름 없는 가게';
+      $('#fd-ed-placeemoji', sheet).textContent = catEmoji(p.category);
+      $('#fd-ed-placehead', sheet).hidden = false;
+      $('.fd-sheet-head h2', sheet).textContent = TITLES.add;
+      dirty = true;
+      // 가고 싶은 곳 칸은 가게 칸과 함께 숨지 않도록 가게 이름 줄 아래로 옮기고,
+      // 붙인 가게와 같은 가고 싶은 곳이 있으면 이어서 묻는다
+      $('#fd-ed-placehead', sheet).insertAdjacentElement('afterend', wishEl);
+      checkWish({ name:p.name, location:p.location });
+    }
 
     function menuOf(el){
       var box = el.closest('[data-mid]');
@@ -868,6 +1957,9 @@
         if (m) m[t.dataset.mf] = t.value;
       }
     });
+    function onNameLeave(e){ if (e.target.dataset && e.target.dataset.f === 'name') checkSame(); }
+    sheet.addEventListener('focusout', onNameLeave);
+    sheet.addEventListener('change', onNameLeave);
     sheet.addEventListener('keydown', function(e){
       // 메뉴 이름에서 완료를 누르면 한마디 칸으로
       if (e.key === 'Enter' && e.target.dataset && e.target.dataset.mf === 'name') {
@@ -907,6 +1999,21 @@
         $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === draft.revisit); });
         return;
       }
+      var pick = t.closest('[data-same-pick]');
+      if (pick) {
+        var p = findPlace(pick.dataset.samePick);
+        if (p) switchToPlace(p); else { sameKey = ''; checkSame(); }
+        return;
+      }
+      var wm = t.closest('[data-wish-move]');
+      if (wm) {
+        var w = findWish(wm.dataset.wishMove);
+        if (!w) { wishKey = ''; wishEl.innerHTML = ''; return; }
+        dirty = true;
+        wishMove = w; wishChosenKey = wishKey; wishKey = '';
+        wishEl.innerHTML = wishMovingHTML(w, false);
+        return;
+      }
       var act = t.closest('[data-act]');
       if (!act) {
         var tile = t.closest('[data-photo]');
@@ -919,6 +2026,16 @@
       switch (act.dataset.act) {
         case 'close': cancel(); break;
         case 'save': commit(); break;
+        case 'same-new':
+          dismissedKey = sameKey; sameKey = ''; sameEl.innerHTML = '';
+          checkWish(formCand());
+          break;
+        case 'wish-no':
+          wishDismissedKey = wishKey; wishKey = ''; wishEl.innerHTML = '';
+          break;
+        case 'wish-undo':
+          wishDismissedKey = wishChosenKey; wishMove = null; wishChosenKey = ''; wishEl.innerHTML = '';
+          break;
         case 'add-menu':
           dirty = true;
           var m2 = newMenu();
@@ -950,7 +2067,7 @@
       input.onchange = function(){
         var files = Array.prototype.slice.call(input.files || []);
         var room = MAX_PHOTOS - draft.photos.length - busy;
-        if (files.length > room) toast('사진은 한 기록에 ' + MAX_PHOTOS + '장까지 넣을 수 있어요');
+        if (files.length > room) toast('사진은 한 방문에 ' + MAX_PHOTOS + '장까지 넣을 수 있어요');
         files = files.slice(0, Math.max(0, room));
         if (!files.length) return;
         dirty = true;
@@ -974,42 +2091,406 @@
     }
 
     function cancel(){
-      if (dirty && !confirm(src ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 기록을 버릴까요?')) return;
+      if (dirty && !confirm(mode === 'edit' ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 기록을 버릴까요?')) return;
       photoDel(added);
       sheet.close();
     }
     function commit(){
       if (busy) { toast('사진을 넣는 중이에요. 잠시만요'); return; }
-      draft.name = draft.name.trim();
-      if (!draft.name) {
-        toast('가게 이름을 적어 주세요');
-        $('#fd-ed-name', sheet).focus();
+      if (mode === 'new') {
+        if (!draft.name.trim()) {
+          toast('가게 이름을 적어 주세요');
+          $('#fd-ed-name', sheet).focus();
+          return;
+        }
+        checkSame();
+        if (sameKey) {
+          toast('같은 가게인지 먼저 골라 주세요');
+          sameEl.scrollIntoView({ block:'center', behavior:'smooth' });
+          return;
+        }
+      }
+      if (wishKey) {
+        toast('가고 싶은 곳에서 옮길지 먼저 골라 주세요');
+        wishEl.scrollIntoView({ block:'center', behavior:'smooth' });
         return;
       }
-      draft.area = draft.area.trim();
-      draft.oneLiner = draft.oneLiner.trim();
-      draft.memo = draft.memo.replace(/\s+$/, '');
-      draft.menus = draft.menus
-        .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
-        .filter(function(m){ return m.name || m.note || m.rating; });
-      var now = new Date().toISOString();
-      draft.updatedAt = now;
-      if (!draft.createdAt) draft.createdAt = now;
-      var place = normalizePlace(draft);
-      var cur = findPlace(place.id);
-      if (cur) state.places[state.places.indexOf(cur)] = place;
-      else state.places.push(place);
-      if (!save()) return;
-      // 빠진 사진은 저장이 끝난 뒤에 지운다
-      photoDel(startPhotos.concat(added).filter(function(x){ return place.photos.indexOf(x) === -1; }));
+      // 저장할 값은 사본으로 만든다. 저장이 안 되면 폼과 draft는 그대로 남는다
+      var out = clone(draft);
+      out.name = out.name.trim();
+      out.area = out.area.trim();
+      if (mode === 'edit') {
+        // 옛 방문 고치기: 손대지 않은 값은 저장된 그대로 둔다. 바꾼 칸만 공백을 정리한다
+        if (out.oneLiner !== srcVisit.oneLiner) out.oneLiner = out.oneLiner.trim();
+        if (out.memo !== srcVisit.memo) out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus.map(function(m){
+          var orig = null;
+          srcVisit.menus.forEach(function(o){ if (o.id === m.id) orig = o; });
+          if (!orig) {   // 이번에 넣은 줄
+            m.name = m.name.trim(); m.note = m.note.trim();
+            return (m.name || m.note || m.rating) ? m : null;
+          }
+          // 원래 있던 줄: 바뀌지 않은 칸은 저장된 값, 비어 보여도 지우지 않는다 (빼기 버튼으로만 빠진다)
+          var r = clone(orig);
+          if (m.name !== orig.name) r.name = m.name.trim();
+          if (m.note !== orig.note) r.note = m.note.trim();
+          r.rating = m.rating;
+          return r;
+        }).filter(Boolean);
+      } else {
+        out.oneLiner = out.oneLiner.trim();
+        out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus
+          .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
+          .filter(function(m){ return m.name || m.note || m.rating; });
+      }
+      var res = saveVisit(target ? target.id : null, srcVisit ? srcVisit.id : null, out, wishMove && !srcVisit ? wishMove.id : null);
+      if (!res.place) {
+        if (res.error) toast(res.error);
+        if (res.error === '이미 지운 기록이에요') { photoDel(added); sheet.close(); }
+        return;
+      }
+      // 빠진 사진은 저장이 끝난 뒤에, 어느 방문에서도 쓰지 않을 때만 지운다
+      photoDel(startPhotos.concat(added).filter(function(x){ return !photoInUse(x); }));
       render();
       sheet.close();
-      var detail = $('.fd-sheet[data-detail="' + place.id + '"]');
-      if (detail) fillDetail(detail, place);
-      toast(cur ? '고쳤어요' : '맛집을 기록했어요 🍽️');
+      refreshDetail(res.place.id);
+      if (res.movedWish) refreshWishDetail(res.movedWish.id);
+      toast(res.movedWish ? '다녀온 곳으로 옮겼어요 🍽️' : mode === 'edit' ? '고쳤어요 ✨' : mode === 'add' ? '방문을 더했어요 🍽️' : '맛집을 기록했어요 🍽️');
     }
 
-    if (!src) setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
+    if (fromWish) {
+      wishEl.innerHTML = wishMovingHTML(fromWish, true);
+      checkSame();   // 다녀온 곳에 같은 가게가 있으면 바로 묻는다
+    }
+    if (mode === 'new') setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
+  }
+
+  // ---------- 가게 정보 고치기 ----------
+  function linkEditHTML(l){
+    return '<div class="fd-link-edit fd-row"><input class="fd-input" data-link value="' + esc(l) + '" placeholder="https://…" maxlength="500" autocomplete="off" inputmode="url" autocapitalize="off">' +
+      '<button type="button" class="fd-menu-del" data-act="del-link" aria-label="링크 빼기">✕</button></div>';
+  }
+  function placeFormHTML(d){
+    return '' +
+      '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-pf-name">가게 이름</label>' +
+        '<input class="fd-input big" id="fd-pf-name" data-pf="name" value="' + esc(d.name) + '" placeholder="가게 이름" maxlength="40" autocomplete="off"></div>' +
+      '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-pf-area">지역</label><input class="fd-input" id="fd-pf-area" data-pf="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+      '<div id="fd-pf-location">' + locPickerHTML() + '</div>' +
+      '<div class="fd-field"><label class="fd-label">링크 <small>http로 시작하면 눌러서 열 수 있어요</small></label>' +
+        '<div class="fd-link-edits" id="fd-pf-links">' + d.links.map(linkEditHTML).join('') + '</div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-link" style="margin-top:8px">🔗 링크 추가</button></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-pf-memo">가게 메모</label>' +
+        '<textarea class="fd-textarea" id="fd-pf-memo" data-pf="memo" maxlength="1000" placeholder="주차, 영업시간, 추천 메뉴…">' + esc(d.memo) + '</textarea></div>';
+    // 또 갈래요는 여기서 고치지 않는다. 가게 화면의 바꾸기와 새 방문 폼에서만 바뀐다
+  }
+  function openPlaceForm(id){
+    var src = findPlace(id);
+    if (!src) return;
+    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo,
+              location:src.location ? clone(src.location) : null, locationTouched:false };
+    var dirty = false;
+    var sheet = openSheet({
+      title:'가게 정보 고치기', leftLabel:'취소',
+      right:'<button class="fd-text-btn strong" data-act="save">저장</button>',
+      body:placeFormHTML(d)
+    });
+    var linksEl = $('#fd-pf-links', sheet);
+    // 위치 붙이기·바꾸기·떼기. 이름은 비어 있을 때만, 종류는 고르지 않았을 때만 채운다
+    mountLocPicker($('#fd-pf-location [data-loc-root]', sheet), {
+      get: function(){ return d.location; },
+      query: function(){ return d.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        d.location = loc; d.locationTouched = true;
+        if (!d.name.trim()) { d.name = loc.placeName; $('#fd-pf-name', sheet).value = d.name; }
+        var c = d.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          d.category = c;
+          $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+      },
+      onRemove: function(){ dirty = true; d.location = null; d.locationTouched = true; }
+    });
+    sheet.addEventListener('input', function(e){
+      dirty = true;
+      if (e.target.dataset.pf) d[e.target.dataset.pf] = e.target.value;
+    });
+    sheet.addEventListener('click', function(e){
+      var t = e.target;
+      var cat = t.closest('[data-pick-cat]');
+      if (cat) {
+        dirty = true;
+        d.category = d.category === cat.dataset.pickCat ? '' : cat.dataset.pickCat;
+        $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === d.category); });
+        return;
+      }
+      var act = t.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'close') {
+        if (dirty && !confirm('고친 내용을 저장하지 않고 닫을까요?')) return;
+        sheet.close();
+      } else if (act.dataset.act === 'add-link') {
+        dirty = true;
+        linksEl.insertAdjacentHTML('beforeend', linkEditHTML(''));
+        linksEl.lastElementChild.querySelector('input').focus();
+      } else if (act.dataset.act === 'del-link') {
+        dirty = true;
+        act.closest('.fd-link-edit').remove();
+      } else if (act.dataset.act === 'save') {
+        save1();
+      }
+    });
+    function save1(){
+      var cur = findPlace(id);
+      if (!cur) { toast('이미 지운 기록이에요'); sheet.close(); return; }
+      // 손대지 않은 값은 그대로 둔다. 바꾼 칸만 앞뒤 공백을 정리한다
+      var name = d.name === cur.name ? cur.name : d.name.trim();
+      if (!name.trim()) { toast('가게 이름을 적어 주세요'); $('#fd-pf-name', sheet).focus(); return; }
+      var links = [];
+      $all('[data-link]', linksEl).forEach(function(inp){
+        var v = inp.value;
+        if (cur.links.indexOf(v) !== -1) links.push(v);
+        else if (v.trim()) links.push(v.trim());
+      });
+      var next = clone(cur);
+      next.name = name;
+      next.category = d.category;
+      next.area = d.area === cur.area ? cur.area : d.area.trim();
+      next.links = links;
+      next.memo = d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
+      if (d.locationTouched) next.location = d.location ? clone(d.location) : null;   // 건드리지 않았으면 저장된 그대로
+      touch(next, null);
+      next = normalizePlace(next);
+      if (!replacePlace(cur, next)) return;
+      render();
+      sheet.close();
+      refreshDetail(id);
+      toast('가게 정보를 고쳤어요 ✨');
+    }
+  }
+
+  // ---------- 가고 싶은 곳 ----------
+  function wishDetailHTML(w){
+    var meta = [w.category ? catEmoji(w.category) + ' ' + w.category : '', w.area].filter(Boolean).map(esc).join(' · ');
+    var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(w.category) + '</div><div class="fd-place-name">' +
+      '<h1 class="fd-detail-title">' + esc(w.name || '이름 없는 곳') + '</h1>' +
+      (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') +
+      locDetailHTML(w) +
+      '</div></div>';
+    if (w.link) html += '<div class="fd-section-title">🔗 알게 된 곳</div><div class="fd-links">' + linkHTML(w.link) + '</div>';
+    if (w.wantMenus.length) html += '<div class="fd-section-title">😋 먹어 보고 싶은 메뉴</div><div class="fd-want-chips">' +
+      w.wantMenus.map(function(m){ return '<span class="fd-menu-chip">' + esc(m) + '</span>'; }).join('') + '</div>';
+    if (w.memo) html += '<div class="fd-section-title">📝 메모</div><div class="fd-memo">' + esc(w.memo) + '</div>';
+    html += '<div class="fd-detail-actions">' +
+      '<button class="fd-btn-soft fd-press" data-act="edit-wish">✏️ 고치기</button>' +
+      '<button class="fd-btn-primary fd-press" data-act="visited">🍴 다녀왔어요</button></div>';
+    html += '<button class="fd-danger-btn fd-press" data-act="delete-wish">지우기</button>';
+    return html;
+  }
+  // 열려 있는 가고 싶은 곳 화면을 지금 값으로 다시 채운다. 없어졌으면(옮김·지움) 닫는다
+  function refreshWishDetail(id){
+    $all('.fd-sheet[data-wish-detail]').forEach(function(s){
+      if (s.closed || s.dataset.wishDetail !== id) return;
+      var w = findWish(id);
+      if (w) $('.fd-sheet-inner', s).innerHTML = wishDetailHTML(w); else s.close();
+    });
+  }
+  function openWishDetail(id){
+    var w = findWish(id);
+    if (!w) return;
+    var sheet = openSheet({ title:'', leftLabel:'‹ 목록', body:wishDetailHTML(w) });
+    sheet.dataset.wishDetail = id;
+    sheet.addEventListener('click', function(e){
+      var b = e.target.closest('[data-act]');
+      if (!b) return;
+      var act = b.dataset.act, cur = findWish(id);
+      if (act === 'close' || !cur) { sheet.close(); return; }
+      if (act === 'visited') openVisitForm({ mode:'new', wishId:id });
+      else if (act === 'edit-wish') openWishForm(id);
+      else if (act === 'delete-wish') {
+        if (!confirm('‘' + (cur.name || '이름 없는 곳') + '’을 가고 싶은 곳에서 지울까요?')) return;
+        removeWish(id);
+      }
+    });
+  }
+  function removeWish(id){
+    finishPendingDelete();
+    var w = findWish(id);
+    if (!w) return;
+    var idx = state.wishes.indexOf(w);
+    state.wishes.splice(idx, 1);
+    if (!save()) { state.wishes.splice(idx, 0, w); return; }
+    render();
+    refreshWishDetail(id);
+    startPendingDelete({ place:{ visits:[] }, placeId:null, restore:function(){
+      if (findWish(id)) return true;
+      state.wishes.splice(Math.min(idx, state.wishes.length), 0, w);
+      if (save()) return true;
+      state.wishes.splice(state.wishes.indexOf(w), 1);
+      return false;
+    } }, '가고 싶은 곳을 지웠어요');
+  }
+
+  function wantEditHTML(m){
+    return '<div class="fd-link-edit fd-row" data-want><input class="fd-input" data-want-in value="' + esc(m) + '" placeholder="예: 트러플 크림 파스타" maxlength="40" autocomplete="off" enterkeyhint="done">' +
+      '<button type="button" class="fd-menu-del" data-act="del-want" aria-label="메뉴 빼기">✕</button></div>';
+  }
+  function wishFormHTML(d){
+    var wants = d.wantMenus.length ? d.wantMenus : [''];
+    return '' +
+      '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-wf-name">가게 이름</label>' +
+        '<input class="fd-input big" id="fd-wf-name" data-wf="name" value="' + esc(d.name) + '" placeholder="어디에 가 보고 싶나요?" maxlength="40" autocomplete="off">' +
+        '<div id="fd-wf-same"></div></div>' +
+      '<div id="fd-wf-location">' + locPickerHTML() + '</div>' +
+      '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-wf-area">지역</label><input class="fd-input" id="fd-wf-area" data-wf="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-wf-link">알게 된 곳 링크 <small>http로 시작하면 눌러서 열 수 있어요</small></label>' +
+        '<input class="fd-input" id="fd-wf-link" data-wf="link" value="' + esc(d.link) + '" placeholder="https://…" maxlength="500" autocomplete="off" inputmode="url" autocapitalize="off"></div>' +
+      '<div class="fd-field"><label class="fd-label">먹어 보고 싶은 메뉴</label>' +
+        '<div class="fd-link-edits" id="fd-wf-wants">' + wants.map(wantEditHTML).join('') + '</div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-want" style="margin-top:8px">😋 메뉴 추가</button></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-wf-memo">메모</label>' +
+        '<textarea class="fd-textarea" id="fd-wf-memo" data-wf="memo" maxlength="1000" placeholder="누가 추천했는지, 영업시간…">' + esc(d.memo) + '</textarea></div>';
+  }
+  // 가고 싶은 곳에 넣을 때 같은 곳이 있으면 알린다. 막지는 않는다
+  function wishSameHTML(places, wishes){
+    var html = '<div class="fd-same">';
+    if (places.length) html += '<b>🍽️ 이미 다녀온 가게예요</b>' + places.map(function(p){
+      var meta = [p.area, p.category, '방문 ' + p.visits.length + '번'].filter(Boolean).map(esc).join(' · ');
+      return '<div class="fd-same-item"><div><strong>' + catEmoji(p.category) + ' ' + esc(p.name) + '</strong><small>' + meta + '</small></div></div>';
+    }).join('');
+    if (wishes.length) html += '<b' + (places.length ? ' style="margin-top:10px"' : '') + '>💭 이미 넣어 둔 곳이에요</b>' + wishes.map(function(w){
+      var meta = wishMetaHTML(w);
+      return '<div class="fd-same-item"><div><strong>' + catEmoji(w.category) + ' ' + esc(w.name) + '</strong>' + (meta ? '<small>' + meta + '</small>' : '') + '</div></div>';
+    }).join('');
+    return html + '<p style="margin-top:8px">그래도 가고 싶은 곳에 넣을까요?</p>' +
+      '<button type="button" class="fd-same-new fd-press" data-act="wf-same-ok">그래도 넣을게요</button></div>';
+  }
+  // id 없음 → 새로 넣기, id 있음 → 고치기
+  function openWishForm(id){
+    var src = id ? findWish(id) : null;
+    if (id && !src) { toast('이미 지운 기록이에요'); return; }
+    var d = src ? { name:src.name, category:src.category, area:src.area, link:src.link, wantMenus:src.wantMenus.slice(), memo:src.memo }
+                : { name:'', category:'', area:'', link:'', wantMenus:[], memo:'' };
+    d.location = src && src.location ? clone(src.location) : null;
+    d.locationTouched = false;
+    var dirty = false;
+    var sheet = openSheet({
+      title: src ? '가고 싶은 곳 고치기' : '가고 싶은 곳 넣기', leftLabel:'취소',
+      right:'<button class="fd-text-btn strong" data-act="save">저장</button>',
+      body:wishFormHTML(d)
+    });
+    var wantsEl = $('#fd-wf-wants', sheet), sameEl = $('#fd-wf-same', sheet);
+    mountLocPicker($('#fd-wf-location [data-loc-root]', sheet), {
+      get: function(){ return d.location; },
+      query: function(){ return d.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        d.location = loc; d.locationTouched = true;
+        if (!d.name.trim()) { d.name = loc.placeName; $('#fd-wf-name', sheet).value = d.name; }
+        var c = d.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          d.category = c;
+          $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+        checkSame();
+      },
+      onRemove: function(){ dirty = true; d.location = null; d.locationTouched = true; checkSame(); }
+    });
+    // 고칠 때 원래 이름·위치 그대로면 묻지 않는다
+    var sameKey = '', okKey = src ? sameKeyOf(src) : '';
+    function checkSame(){
+      var cand = { name:d.name, location:d.location };
+      var key = sameKeyOf(cand);
+      if (key === sameKey) return;
+      var ps = key && key !== okKey ? samePlaceCandidates(cand) : [];
+      var ws = key && key !== okKey ? sameWishCandidates(cand, id) : [];
+      sameKey = ps.length || ws.length ? key : '';
+      sameEl.innerHTML = sameKey ? wishSameHTML(ps, ws) : '';
+    }
+    sheet.addEventListener('input', function(e){
+      dirty = true;
+      if (e.target.dataset.wf) d[e.target.dataset.wf] = e.target.value;
+    });
+    function onNameLeave(e){ if (e.target.dataset && e.target.dataset.wf === 'name') checkSame(); }
+    sheet.addEventListener('focusout', onNameLeave);
+    sheet.addEventListener('change', onNameLeave);
+    sheet.addEventListener('click', function(e){
+      var t = e.target;
+      var cat = t.closest('[data-pick-cat]');
+      if (cat) {
+        dirty = true;
+        d.category = d.category === cat.dataset.pickCat ? '' : cat.dataset.pickCat;
+        $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === d.category); });
+        return;
+      }
+      var act = t.closest('[data-act]');
+      if (!act) return;
+      switch (act.dataset.act) {
+        case 'close':
+          if (dirty && !confirm(src ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 내용을 버릴까요?')) return;
+          sheet.close();
+          break;
+        case 'save': save1(); break;
+        case 'wf-same-ok':
+          okKey = sameKey; sameKey = ''; sameEl.innerHTML = '';
+          break;
+        case 'add-want':
+          dirty = true;
+          wantsEl.insertAdjacentHTML('beforeend', wantEditHTML(''));
+          wantsEl.lastElementChild.querySelector('input').focus();
+          break;
+        case 'del-want':
+          dirty = true;
+          act.closest('[data-want]').remove();
+          break;
+      }
+    });
+    function save1(){
+      var cur = id ? findWish(id) : null;
+      if (id && !cur) { toast('이미 지운 기록이에요'); sheet.close(); return; }
+      // 손대지 않은 값은 그대로 둔다. 바꾼 칸만 앞뒤 공백을 정리한다
+      var keep = function(v, old){ return cur && v === old ? old : v.trim(); };
+      var name = keep(d.name, cur && cur.name);
+      if (!name.trim()) { toast('가게 이름을 적어 주세요'); $('#fd-wf-name', sheet).focus(); return; }
+      checkSame();
+      if (sameKey && !confirm('같은 이름의 곳이 이미 있어요. 그래도 넣을까요?')) {
+        sameEl.scrollIntoView({ block:'center', behavior:'smooth' });
+        return;
+      }
+      var wants = [];
+      $all('[data-want-in]', wantsEl).forEach(function(inp){
+        var v = inp.value;
+        if (cur && cur.wantMenus.indexOf(v) !== -1) wants.push(v);
+        else if (v.trim()) wants.push(v.trim());
+      });
+      var now = new Date().toISOString();
+      var next = cur ? clone(cur) : { id:uid(), location:null, createdAt:now };
+      next.name = name;
+      next.category = d.category;
+      next.area = keep(d.area, cur && cur.area);
+      next.link = keep(d.link, cur && cur.link);
+      next.wantMenus = wants;
+      next.memo = cur && d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
+      if (!cur || d.locationTouched) next.location = d.location ? clone(d.location) : null;   // 건드리지 않았으면 저장된 그대로
+      next.updatedAt = now;
+      next = normalizeWish(next);
+      if (cur) {
+        var i = state.wishes.indexOf(cur);
+        state.wishes[i] = next;
+        if (!save()) { state.wishes[i] = cur; return; }
+      } else {
+        state.wishes.push(next);
+        if (!save()) { state.wishes.pop(); return; }
+      }
+      render();
+      sheet.close();
+      if (cur) refreshWishDetail(id);
+      toast(cur ? '고쳤어요 ✨' : '가고 싶은 곳에 넣었어요 💭');
+    }
+    if (!src) setTimeout(function(){ if (!sheet.closed && !d.name) $('#fd-wf-name', sheet).focus(); }, 320);
   }
 
   // ---------- 백업 ----------
@@ -1024,8 +2505,7 @@
   function exportBackup(){
     finishPendingDelete();
     toast('백업 파일을 만드는 중…');
-    var ids = [];
-    state.places.forEach(function(p){ p.photos.forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    var ids = allPhotoIds(state.places);
     var photos = {};
     ids.reduce(function(chain, id){
       return chain.then(function(){
@@ -1037,11 +2517,11 @@
         });
       });
     }, Promise.resolve()).then(function(){
-      var json = JSON.stringify({ app:'food-diary', version:1, exportedAt:new Date().toISOString(), places:state.places, photos:photos });
+      var json = JSON.stringify({ app:'food-diary', version:2, exportedAt:new Date().toISOString(), places:state.places, wishes:state.wishes, photos:photos });
       var name = '맛집기록서-' + today() + '.json';
       var file = new File([json], name, { type:'application/json' });
-      var touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
-      if (touch && navigator.canShare && navigator.canShare({ files:[file] })) {
+      var coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+      if (coarse && navigator.canShare && navigator.canShare({ files:[file] })) {
         return navigator.share({ files:[file] }).then(function(){ toast('백업 파일을 보냈어요'); }, function(err){
           if (err && err.name !== 'AbortError') download(file, name);
         });
@@ -1054,7 +2534,30 @@
     a.href = URL.createObjectURL(file); a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-    toast('백업 파일을 저장했어요');
+    toast('백업 파일을 저장했어요 📦');
+  }
+  // 백업 파일 → { places, wishes, photos }. 1판 파일(version 1 또는 없음)은 옮기기 규칙 그대로 바꾼다.
+  // 받을 수 없는 파일이면 null
+  function readBackup(data){
+    if (!data || typeof data !== 'object' || data.app !== 'food-diary' || !Array.isArray(data.places)) return null;
+    var photos = data.photos && typeof data.photos === 'object' ? data.photos : {};
+    if (data.version == null || data.version === 1) return { places:placesFromV1(data.places), wishes:[], photos:photos };
+    if (data.version === 2) {
+      var s = normalizeState(data);
+      return { places:s.places, wishes:s.wishes, photos:photos };
+    }
+    return null;
+  }
+  // 사진은 지금 기기에 없는 것만 넣는다. 합친 결과의 방문이 쓰는 사진만 본다
+  function isImageData(s){ return typeof s === 'string' && s.indexOf('data:image/') === 0; }
+  function missingPhotos(places, photos){
+    var ids = allPhotoIds(places).filter(function(id){ return photos[id] && isImageData(photos[id].full); });
+    var need = [];
+    return ids.reduce(function(chain, id){
+      return chain.then(function(){
+        return photoGet(id).then(function(have){ if (!have) need.push(id); }, function(){});
+      });
+    }, Promise.resolve()).then(function(){ return need; });
   }
   function importBackup(){
     var input = $('#fd-import-input');
@@ -1065,42 +2568,44 @@
       f.text().then(function(text){
         var data;
         try { data = JSON.parse(text); } catch (e) { toast('읽을 수 없는 파일이에요'); return; }
-        if (!data || data.app !== 'food-diary' || !Array.isArray(data.places)) { toast('맛집 기록서 백업 파일이 아니에요'); return; }
-        var incoming = data.places.map(normalizePlace);
-        var fresh = 0, newer = 0;
-        incoming.forEach(function(p){
-          var cur = findPlace(p.id);
-          if (!cur) fresh++;
-          else if (cmp(p.updatedAt, cur.updatedAt) > 0) newer++;
-        });
-        if (!fresh && !newer) { toast('이미 다 들어 있는 기록이에요'); return; }
-        if (!confirm('새 기록 ' + fresh + '개' + (newer ? ', 더 최근에 고친 기록 ' + newer + '개' : '') +
-          '를 합칠까요?\n지금 있는 기록은 지워지지 않아요.')) return;
+        var inc = readBackup(data);
+        if (!inc) {
+          toast(data && data.app === 'food-diary' && typeof data.version === 'number' && data.version > 2
+            ? '더 새 버전에서 만든 백업이라 불러올 수 없어요' : '맛집 기록서 백업 파일이 아니에요');
+          return;
+        }
+        // 지우기 되돌리기가 남아 있으면 먼저 끝낸다 (되돌리기와 불러오기가 겹치면 같은 가게가 둘이 된다)
         finishPendingDelete();
-        var photos = data.photos && typeof data.photos === 'object' ? data.photos : {};
-        var need = [];
-        incoming.forEach(function(p){
-          var cur = findPlace(p.id);
-          if (!cur || cmp(p.updatedAt, cur.updatedAt) > 0) p.photos.forEach(function(id){ if (photos[id]) need.push(id); });
-        });
-        toast('불러오는 중…');
-        need.reduce(function(chain, id){
-          return chain.then(function(){
-            return photoGet(id).then(function(have){
-              if (have) return;
-              var ph = photos[id];
-              return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(ph.thumb || ph.full).then(function(r){ return r.blob(); })])
-                .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); });
-            }).catch(function(){});
+        var merged = mergeData(state, inc);
+        var same = JSON.stringify({ p:merged.places, w:merged.wishes }) === JSON.stringify({ p:state.places, w:state.wishes });
+        return missingPhotos(merged.places, inc.photos).then(function(need){
+          var c = merged.counts;
+          if (same && !need.length) { toast('이미 다 들어 있는 기록이에요'); return; }
+          var parts = [];
+          if (c.newPlaces) parts.push('새 가게 ' + c.newPlaces + '곳');
+          if (c.newVisits) parts.push('새 방문 ' + c.newVisits + '번');
+          if (c.newWishes) parts.push('새 가고 싶은 곳 ' + c.newWishes + '곳');
+          if (c.newer) parts.push('더 최근 것으로 바뀌는 기록 ' + c.newer + '개');
+          if (need.length) parts.push('사진 ' + need.length + '장');
+          if (!parts.length) parts.push('바뀐 내용');
+          if (!confirm(parts.join(', ') + '\n이 내용을 합칠까요? 지금 있는 기록은 지워지지 않아요.')) return;
+          toast('불러오는 중…');
+          return need.reduce(function(chain, id){
+            return chain.then(function(){
+              var ph = inc.photos[id];
+              return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(isImageData(ph.thumb) ? ph.thumb : ph.full).then(function(r){ return r.blob(); })])
+                .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); })
+                .catch(function(){});
+            });
+          }, Promise.resolve()).then(function(){
+            // 사진을 넣는 동안 바뀌었을 수 있으니 지금 상태에 다시 합친다
+            var m = mergeData(state, inc);
+            var before = { places:state.places, wishes:state.wishes };
+            state.places = m.places; state.wishes = m.wishes;
+            if (!save()) { state.places = before.places; state.wishes = before.wishes; return; }
+            render();
+            toast('백업을 합쳤어요');
           });
-        }, Promise.resolve()).then(function(){
-          incoming.forEach(function(p){
-            var cur = findPlace(p.id);
-            if (!cur) state.places.push(p);
-            else if (cmp(p.updatedAt, cur.updatedAt) > 0) state.places[state.places.indexOf(cur)] = p;
-          });
-          save(); render();
-          toast('기록 ' + (fresh + newer) + '개를 합쳤어요');
         });
       }).catch(function(){ toast('파일을 읽지 못했어요'); });
     };
@@ -1112,7 +2617,7 @@
     est.catch(function(){ return null; }).then(function(e){
       var used = e && e.usage ? ' · 사용 중 ' + (e.usage / 1048576).toFixed(1) + 'MB' : '';
       openActionSheet('백업', '기록과 사진은 이 기기에만 저장돼요. 기기를 바꾸거나 정리하기 전에 백업 파일을 남겨 두세요.' + used, [
-        { icon:'📦', label:'백업 파일 만들기', sub:'기록 ' + n + '개와 사진을 파일 하나로', run:exportBackup },
+        { icon:'📦', label:'백업 파일 만들기', sub:'가게 ' + n + '곳과 사진을 파일 하나로', run:exportBackup },
         { icon:'📥', label:'백업 파일 불러오기', sub:'지금 기록에 합쳐요 (지워지지 않아요)', run:importBackup }
       ]);
     });
@@ -1120,15 +2625,27 @@
 
   // ---------- 알림 ----------
   var toastTimer = null;
+  // 되돌리기를 기다리는 동안 보인 되돌리기 알림. 다른 알림이 떠도 되돌리기 버튼은 남긴다
+  var undoToast = null;   // { pd, label, fn, until }
+  function showUndo(pd, msg, fn){
+    toast(msg, '되돌리기', fn, 7000);
+    undoToast = { pd:pd, label:'되돌리기', fn:fn, until:Date.now() + 7000 };
+  }
   function toast(msg, actionLabel, onAction, ms){
     var el = $('#fd-toast'), btn = $('button', el);
+    ms = ms || 2200;
+    if (actionLabel) undoToast = null;
+    else if (undoToast && pendingDelete === undoToast.pd && Date.now() < undoToast.until) {
+      actionLabel = undoToast.label; onAction = undoToast.fn;
+      ms = Math.max(ms, undoToast.until - Date.now());
+    }
     $('span', el).textContent = msg;
     btn.hidden = !actionLabel;
     btn.textContent = actionLabel || '';
     btn.onclick = function(){ el.classList.remove('show'); if (onAction) onAction(); };
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, ms || 2200);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, ms);
   }
 
   // ---------- 이벤트 ----------
@@ -1155,12 +2672,25 @@
     ui.sort = b.dataset.sort;
     renderList();
   });
+  // 맨 위 바꾸기: 검색어와 종류는 그대로 두고 목록 쪽만 바꾼다 (검색창은 다시 그리지 않는다)
+  $('#fd-side').addEventListener('click', function(e){
+    var b = e.target.closest('[data-side]');
+    if (!b || b.dataset.side === ui.side) return;
+    ui.side = b.dataset.side;
+    render();
+  });
   $('#fd-list').addEventListener('click', function(e){
     var c = e.target.closest('[data-open]');
-    if (c) openDetail(c.dataset.open);
+    if (c) { openDetail(c.dataset.open); return; }
+    var wc = e.target.closest('[data-wish]');
+    if (wc) openWishDetail(wc.dataset.wish);
   });
-  $('#fd-add').addEventListener('click', function(){ openEdit(null); });
+  $('#fd-add').addEventListener('click', function(){
+    if (ui.side === 'wishes') openWishForm(null);
+    else openVisitForm({ mode:'new' });
+  });
   $('#fd-menu-btn').addEventListener('click', openMenu);
+  $('#fd-map-btn').addEventListener('click', openMap);
   window.addEventListener('pagehide', finishPendingDelete);
 
   render();
