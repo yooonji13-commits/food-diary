@@ -435,7 +435,7 @@
   </div>
   <main class="fd-list" id="fd-list"></main>
 </div>
-<button class="fd-fab" id="fd-add"><span style="font-size:19px;line-height:1" id="fd-add-emoji" hidden></span><span id="fd-add-label">일기 기록하기</span></button>
+<button class="fd-fab" id="fd-add"><span id="fd-add-label">일기 기록하기</span></button>
 <input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
 <input type="file" id="fd-import-input" accept="application/json,.json" hidden>
 <div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
@@ -978,8 +978,6 @@
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     var w = ui.side === 'wishes';
-    $('#fd-add-emoji').textContent = w ? '💭' : '';
-    $('#fd-add-emoji').hidden = !w;
     $('#fd-add-label').textContent = w ? '가고 싶은 곳 넣기' : '일기 기록하기';
     $('#fd-q').placeholder = w ? '가게, 먹고 싶은 메뉴, 메모로 찾기' : '가게, 메뉴, 지역으로 찾기';
   }
