@@ -351,6 +351,33 @@
   .fd-same-row{ display:flex; gap:8px; }
   .fd-same-row .fd-same-new{ flex:1; min-width:0; }
   .fd-same-new.strong{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:700; }
+
+  /* ---- 위치 고르기 (카카오) ---- */
+  .fd-loc-bar{ display:flex; gap:8px; }
+  .fd-loc-bar .fd-input{ flex:1; min-width:0; }
+  .fd-loc-bar input::-webkit-search-cancel-button{ display:none; }
+  .fd-loc-go{ flex:none; height:48px; padding:0 18px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:15px; }
+  .fd-loc-note{ margin:8px 4px 0; font-size:13px; color:var(--muted); word-break:keep-all; }
+  .fd-loc-results{ display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:300px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .fd-loc-results:empty{ display:none; }
+  .fd-loc-item{ display:block; width:100%; min-width:0; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 14px; }
+  .fd-loc-item strong, .fd-loc-item small{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-loc-item strong{ font-size:15px; }
+  .fd-loc-item small{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
+  .fd-loc-item small.fd-loc-cat{ color:var(--muted); }
+  .fd-loc-cancel{ display:block; margin:8px auto 0; height:36px; padding:0 16px; font-size:13.5px; color:var(--muted); border-radius:var(--radius-pill); }
+  .fd-loc-picked{ display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 10px 10px 12px; }
+  .fd-loc-picked > div{ flex:1; min-width:0; }
+  .fd-loc-picked strong, .fd-loc-picked small{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-loc-picked strong{ font-size:15px; }
+  .fd-loc-picked small{ font-size:12.5px; color:var(--muted); }
+  .fd-loc-picked .fd-mini-btn{ flex:none; padding:0 11px; }
+  .fd-loc-pin{ flex:none; font-size:20px; }
+  .fd-loc-notice{ background:var(--accent-soft); border-radius:var(--radius-md); padding:12px 14px; animation:fd-rise .2s ease both; }
+  .fd-loc-notice b{ display:block; font-size:14px; color:var(--accent); word-break:keep-all; }
+  .fd-loc-notice p{ margin:3px 0 0; font-size:13px; color:var(--ink-soft); word-break:keep-all; }
+  .fd-loc-notice .fd-mini-btn{ margin-top:8px; }
+  .fd-detail-kname{ font-size:12px; color:var(--muted); margin-top:1px; word-break:keep-all; }
 </style>
 </head>
 <body>
@@ -391,6 +418,9 @@
 <script>
 (function(){
   'use strict';
+
+  // 카카오 개발자 사이트에서 받은 JavaScript 키를 따옴표 안에 붙여 넣으세요 (비어 있으면 위치 검색·지도만 안 돼요)
+  var KAKAO_JS_KEY = '';
 
   var KEY = 'fd_data_v2';
   var KEY_V1 = 'fd_data_v1';   // 1판 기록. 읽기만 하고 절대 쓰거나 지우지 않는다
@@ -1022,10 +1052,10 @@
   }
   function detailHTML(p){
     var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area].filter(Boolean).map(esc).join(' · ');
+    // 위치가 있으면 주소. 카카오 정식 이름이 사용자가 적은 이름과 다르면 작게 함께
     var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(p.category) + '</div><div class="fd-place-name">' +
       '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>' +
-      (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') + '</div></div>';
-    // 위치 자리: 위치 작업에서 여기에 주소(카카오 정식 이름이 다르면 함께)를 더한다
+      (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') + locDetailHTML(p) + '</div></div>';
     html += '<div class="fd-place-revisit">' + revisitToggleHTML(p.revisit, function(v){ return 'data-act="revisit" data-val="' + v + '"'; }) + '</div>';
     if (p.links.length) html += '<div class="fd-section-title">🔗 링크</div><div class="fd-links">' + p.links.map(linkHTML).join('') + '</div>';
     if (p.memo) html += '<div class="fd-section-title">🏠 가게 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
@@ -1207,8 +1237,7 @@
   // ---------- 같은 가게 알아보기 ----------
   // 이름 비교: 앞뒤·안쪽 공백을 무시하고 대소문자를 가리지 않는다
   function normName(s){ return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); }
-  // 같은 가게일 수 있는 다녀온 곳 후보. cand = { name, location }.
-  // 지금은 이름만 본다. 위치 작업에서 "둘 다 위치가 있으면 kakaoId로만" 규칙을 여기에 더한다
+  // 같은 가게일 수 있는 다녀온 곳 후보. cand = { name, location }. 규칙은 maybeSame 하나
   function samePlaceCandidates(cand, excludeId){
     return state.places.filter(function(p){ return p.id !== excludeId && maybeSame(cand, p); });
   }
@@ -1217,10 +1246,19 @@
     return state.wishes.filter(function(w){ return w.id !== excludeId && maybeSame(cand, w); });
   }
   // 두 곳(가게·가고 싶은 곳·폼 값)이 같은 곳일 수 있는지. 판단 규칙은 여기 한 곳에만 둔다.
-  // 지금은 이름만 본다 (이름이 같으면 확정하지 않고 사용자에게 묻는다)
+  //  - 둘 다 위치(kakaoId)가 있으면 kakaoId가 같을 때만 같은 곳이다. 이름이 같아도 지점이 다르면 다른 곳
+  //  - 어느 한쪽이라도 위치가 없으면 이름을 본다 (이름이 같으면 확정하지 않고 사용자에게 묻는다)
+  function locId(x){ return x && x.location && x.location.kakaoId ? String(x.location.kakaoId) : ''; }
   function maybeSame(a, b){
+    var ka = locId(a), kb = locId(b);
+    if (ka && kb) return ka === kb;
     var key = normName(a && a.name);
     return !!key && normName(b && b.name) === key;
+  }
+  // 알림을 다시 띄울지 가르는 열쇠: 이름과 위치가 그대로면 같은 열쇠다
+  function sameKeyOf(c){
+    var n = normName(c && c.name), k = locId(c);
+    return n || k ? n + '#' + k : '';
   }
   function wishMetaHTML(w){
     return [w.area || (w.location && w.location.address) || '', w.category].filter(Boolean).map(esc).join(' · ');
@@ -1251,6 +1289,243 @@
           '<button type="button" class="fd-press" data-same-pick="' + esc(p.id) + '">이 가게에 방문으로 추가</button></div>';
       }).join('') +
       '<button type="button" class="fd-same-new fd-press" data-act="same-new">따로 새 가게로</button></div>';
+  }
+
+  // ---------- 카카오 (위치 검색, 지도) ----------
+  // SDK는 위치 검색이나 지도를 처음 쓸 때만 불러온다. 앱을 열 때는 불러오지 않는다.
+  // 실패한 약속은 버려서 다음에 다시 시도할 수 있게 한다
+  var KAKAO_TIMEOUT_MS = 8000;
+  var kakaoPromise = null;
+  function kakaoReady(){ return !!(window.kakao && window.kakao.maps && window.kakao.maps.services); }
+  // 지금 바로 알 수 있는 못 쓰는 이유: 'nokey' / 'offline' / ''
+  function kakaoBlocked(){
+    if (kakaoReady()) return '';
+    if (!KAKAO_JS_KEY) return 'nokey';
+    if (navigator.onLine === false) return 'offline';
+    return '';
+  }
+  function kakaoError(reason){ var e = new Error('kakao:' + reason); e.reason = reason; return e; }
+  function loadKakao(timeoutMs){
+    if (kakaoReady()) return Promise.resolve(window.kakao);
+    if (kakaoPromise) return kakaoPromise;
+    var p = new Promise(function(resolve, reject){
+      var why = kakaoBlocked();
+      if (why) { reject(kakaoError(why)); return; }
+      var done = false, script = null;
+      var timer = setTimeout(function(){ fail('timeout'); }, timeoutMs || KAKAO_TIMEOUT_MS);
+      function fail(reason){
+        if (done) return;
+        done = true; clearTimeout(timer);
+        if (script && !window.kakao) script.remove();
+        reject(kakaoError(reason));
+      }
+      function start(){
+        try {
+          window.kakao.maps.load(function(){
+            if (done) return;
+            if (!kakaoReady()) { fail('script'); return; }
+            done = true; clearTimeout(timer);
+            resolve(window.kakao);
+          });
+        } catch (e) { fail('script'); }
+      }
+      // 앞선 시도에서 스크립트가 늦게 들어와 있으면 다시 넣지 않고 시작만 한다
+      if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === 'function') { start(); return; }
+      script = document.createElement('script');
+      script.async = true;
+      script.onerror = function(){ fail(navigator.onLine === false ? 'offline' : 'script'); };
+      script.onload = function(){
+        if (done) return;
+        if (window.kakao && window.kakao.maps && typeof window.kakao.maps.load === 'function') start();
+        else fail('script');
+      };
+      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(KAKAO_JS_KEY) + '&libraries=services&autoload=false';
+      document.head.appendChild(script);
+    });
+    kakaoPromise = p;
+    p.catch(function(){ if (kakaoPromise === p) kakaoPromise = null; });
+    return p;
+  }
+  // 카카오를 못 쓸 때 위치 검색 자리(와 지도)에 보이는 안내
+  function kakaoNoticeHTML(err, retry){
+    var why = err && err.reason;
+    var sub = why === 'nokey' ? 'index.html의 KAKAO_JS_KEY에 카카오 JavaScript 키를 넣으면 쓸 수 있어요.'
+      : why === 'offline' ? '인터넷에 연결되어 있지 않아요. 연결되면 다시 해 보세요.'
+      : '카카오 지도를 불러오지 못했어요. 잠시 뒤 다시 해 보세요.';
+    return '<div class="fd-loc-notice"><b>🗺️ 지도를 쓰려면 인터넷 연결과 카카오 키가 필요해요</b><p>' + esc(sub) + ' 위치 없이도 기록은 그대로 저장돼요.</p>' +
+      (retry && why !== 'nokey' ? '<button type="button" class="fd-mini-btn fd-press" data-loc-act="retry">다시 해 보기</button>' : '') + '</div>';
+  }
+  // 카카오 분류 → 앱 종류. 위에서부터 보고 처음 맞는 것. 아무것도 맞지 않으면 ''
+  function kakaoCategory(categoryName, groupCode){
+    var name = typeof categoryName === 'string' ? categoryName : '';
+    var code = typeof groupCode === 'string' ? groupCode : '';
+    var rules = [
+      ['카페·디저트', ['카페', '디저트', '베이커리']],
+      ['술집', ['술집']],
+      ['분식', ['분식']],
+      ['고기', ['육류,고기', '고기']],
+      ['한식', ['한식']],
+      ['일식', ['일식']],
+      ['중식', ['중식']],
+      ['양식', ['양식']],
+      ['아시안', ['아시아음식']]
+    ];
+    if (code === 'CE7') return '카페·디저트';
+    for (var i = 0; i < rules.length; i++) {
+      for (var j = 0; j < rules[i][1].length; j++) if (name.indexOf(rules[i][1][j]) !== -1) return rules[i][0];
+    }
+    if (code === 'FD6' || name.indexOf('음식점') !== -1) return '기타';
+    return '';
+  }
+  // 카카오 장소 검색 결과 하나 → 저장할 위치 모양
+  function locationFromKakao(r){
+    return normalizeLocation({
+      kakaoId: String(r.id),
+      placeName: str(r.place_name),
+      address: str(r.road_address_name) || str(r.address_name),
+      lat: Number(r.y),
+      lng: Number(r.x)
+    });
+  }
+  // 카카오 정식 이름이 사용자가 적은 이름과 다를 때만 그 이름 (공백·대소문자는 같은 것으로 본다)
+  function kakaoNameIfDiffers(x){
+    var l = x && x.location;
+    return l && l.placeName && normName(l.placeName) !== normName(x.name) ? l.placeName : '';
+  }
+  function locDetailHTML(x){
+    var l = x.location;
+    if (!l || !(l.address || l.placeName)) return '';
+    var kn = kakaoNameIfDiffers(x);
+    return (l.address ? '<div class="fd-detail-addr">📍 ' + esc(l.address) + '</div>' : '') +
+      (kn ? '<div class="fd-detail-kname">카카오 지도 이름 · ' + esc(kn) + '</div>' : '');
+  }
+
+  // 위치 고르기 칸. 폼 HTML에 locPickerHTML()을 넣고, 시트를 연 뒤 mountLocPicker로 붙인다.
+  // 이 칸 안의 위치 카드·검색 결과·안내만 고쳐 그린다. 폼과 검색창은 다시 그리지 않는다
+  function locPickerHTML(){
+    return '<div class="fd-field fd-loc" data-loc-root><label class="fd-label">위치 <small>카카오 지도에서 찾아 붙여요 · 없어도 돼요</small></label>' +
+      '<div data-loc-view></div>' +
+      '<div class="fd-loc-panel" data-loc-panel hidden>' +
+        '<div class="fd-loc-bar" data-loc-bar><input class="fd-input" type="search" data-loc-q placeholder="가게 이름이나 동네로 찾기" maxlength="60" autocomplete="off" enterkeyhint="search">' +
+          '<button type="button" class="fd-loc-go fd-press" data-loc-act="go">찾기</button></div>' +
+        '<div data-loc-msg></div>' +
+        '<div class="fd-loc-results" data-loc-results></div>' +
+        '<button type="button" class="fd-loc-cancel fd-press" data-loc-act="cancel">닫기</button>' +
+      '</div></div>';
+  }
+  function locPickedHTML(l){
+    return '<div class="fd-loc-picked"><span class="fd-loc-pin">📍</span><div><strong>' + esc(l.placeName || '고른 위치') + '</strong>' +
+      (l.address ? '<small>' + esc(l.address) + '</small>' : '') + '</div>' +
+      '<button type="button" class="fd-mini-btn fd-press" data-loc-act="open">바꾸기</button>' +
+      '<button type="button" class="fd-mini-btn fd-press" data-loc-act="remove">떼기</button></div>';
+  }
+  function kakaoCatLabel(s){
+    var parts = String(s || '').split('>').map(function(x){ return x.trim(); }).filter(Boolean);
+    if (parts.length > 1 && parts[0] === '음식점') parts.shift();
+    return parts.slice(-2).join(' › ');
+  }
+  function locResultHTML(r, i){
+    var addr = r.road_address_name || r.address_name || '';
+    var cat = kakaoCatLabel(r.category_name);
+    return '<button type="button" class="fd-loc-item fd-press" data-loc-pick="' + i + '" data-kakao-id="' + esc(r.id) + '">' +
+      '<strong>' + esc(r.place_name || '이름 없는 곳') + '</strong>' +
+      (addr ? '<small>' + esc(addr) + '</small>' : '') +
+      (cat ? '<small class="fd-loc-cat">' + esc(cat) + '</small>' : '') + '</button>';
+  }
+  // o = { get(): 지금 위치, query(): 처음 검색어(이름 칸), onPick(location, 카카오 결과), onRemove() }
+  function mountLocPicker(root, o){
+    var view = $('[data-loc-view]', root), panel = $('[data-loc-panel]', root), bar = $('[data-loc-bar]', root);
+    var q = $('[data-loc-q]', root), msg = $('[data-loc-msg]', root), res = $('[data-loc-results]', root);
+    var results = [], seq = 0;
+    function note(t){ msg.innerHTML = t ? '<p class="fd-loc-note">' + esc(t) + '</p>' : ''; }
+    function drawView(){
+      var l = o.get();
+      view.innerHTML = l ? locPickedHTML(l) : '<button type="button" class="fd-add-line fd-press" data-loc-act="open">📍 위치 검색</button>';
+    }
+    function clearResults(){ results = []; res.innerHTML = ''; }
+    function close(){ seq++; panel.hidden = true; view.hidden = false; clearResults(); note(''); }
+    function fail(err){
+      if (panel.hidden) return;
+      bar.hidden = true; clearResults();
+      msg.innerHTML = kakaoNoticeHTML(err, true);
+    }
+    function open(){
+      view.hidden = true; panel.hidden = false; bar.hidden = false;
+      clearResults(); note('');
+      var why = kakaoBlocked();
+      if (why) { fail(kakaoError(why)); return; }   // 키패드를 올리지 않고 안내만
+      if (!q.value.trim()) q.value = String(o.query() || '').trim();
+      q.focus();   // 누른 순간에 바로 (아이폰은 나중에 focus하면 키패드가 안 올라온다)
+      prepare(!!q.value.trim());
+    }
+    function prepare(thenSearch){
+      var my = ++seq;
+      note('카카오 지도를 불러오는 중…');
+      loadKakao().then(function(){
+        if (my !== seq || panel.hidden) return;
+        note('');
+        if (thenSearch) search();
+      }, function(err){ if (my === seq) fail(err); });
+    }
+    function search(){
+      var text = q.value.trim();
+      if (!text) { note('찾을 가게 이름을 적어 주세요'); return; }
+      var my = ++seq;
+      bar.hidden = false;
+      note('찾는 중…');
+      loadKakao().then(function(k){
+        if (my !== seq || panel.hidden) return;
+        var guard = setTimeout(function(){ if (my === seq && !panel.hidden) { clearResults(); note('검색하지 못했어요. 잠시 뒤 다시 해 보세요'); } }, KAKAO_TIMEOUT_MS);
+        try {
+          new k.maps.services.Places().keywordSearch(text, function(data, status){
+            clearTimeout(guard);
+            if (my !== seq || panel.hidden) return;
+            var S = k.maps.services.Status || {};
+            if (status === (S.OK || 'OK') && Array.isArray(data) && data.length) {
+              results = data;
+              note('');
+              res.innerHTML = data.map(locResultHTML).join('');
+              res.scrollTop = 0;
+            } else {
+              clearResults();
+              note(status === (S.ZERO_RESULT || 'ZERO_RESULT') || (Array.isArray(data) && !data.length)
+                ? '‘' + text + '’ 검색 결과가 없어요. 다른 말로 찾아보세요' : '검색하지 못했어요. 잠시 뒤 다시 해 보세요');
+            }
+          });
+        } catch (e) {
+          clearTimeout(guard);
+          clearResults(); note('검색하지 못했어요. 잠시 뒤 다시 해 보세요');
+        }
+      }, function(err){ if (my === seq) fail(err); });
+    }
+    root.addEventListener('click', function(e){
+      var pick = e.target.closest('[data-loc-pick]');
+      if (pick) {
+        var r = results[Number(pick.dataset.locPick)];
+        if (!r) return;
+        var loc = locationFromKakao(r);
+        close();
+        q.value = '';
+        o.onPick(loc, r);
+        drawView();
+        return;
+      }
+      var b = e.target.closest('[data-loc-act]');
+      if (!b) return;
+      var act = b.dataset.locAct;
+      if (act === 'open') open();
+      else if (act === 'go') search();
+      else if (act === 'cancel') close();
+      else if (act === 'retry') { bar.hidden = false; note(''); prepare(!!q.value.trim()); }
+      else if (act === 'remove') { o.onRemove(); drawView(); }
+    });
+    q.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      search();
+      q.blur();   // 키패드를 내려 결과가 보이게
+    });
+    drawView();
   }
 
   // ---------- 방문 쓰기·고치기 ----------
@@ -1289,7 +1564,7 @@
         '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
           '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off">' +
           '<div id="fd-ed-same"></div><div id="fd-ed-wish"></div></div>' +
-        // 위치 검색 자리: 위치 작업에서 여기에 위치 검색 칸을 더한다
+        '<div id="fd-ed-location">' + locPickerHTML() + '</div>' +
         '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
         '<div class="fd-field"><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
       '</div>';
@@ -1320,7 +1595,8 @@
   var PLACE_FORM_FIELDS = ['name', 'category', 'area', 'revisit'];
   var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
   function draftFrom(place, visit){
-    var d = { name:'', category:'', area:'', revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], memo:'' };
+    // location은 새 가게를 쓸 때만 쓴다 (이미 있는 가게의 위치는 가게 정보 고치기에서 바꾼다)
+    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], memo:'' };
     if (place) PLACE_FORM_FIELDS.forEach(function(k){ d[k] = clone(place[k]); });
     if (visit) VISIT_FORM_FIELDS.forEach(function(k){ d[k] = clone(visit[k]); });
     return d;
@@ -1331,7 +1607,7 @@
   // draft를 가게(+방문)에 반영한 새 가게를 돌려준다. place가 없으면 새 가게 + 새 방문.
   // 방문이 없던 가게는 방문 칸에 뭔가 적었을 때만 방문을 새로 만든다 (가짜 방문 금지)
   function applyDraft(place, visit, d){
-    var p = place ? clone(place) : { id:uid(), location:null, links:[], memo:'', fromWishIds:[], visits:[] };
+    var p = place ? clone(place) : { id:uid(), location:d.location ? clone(d.location) : null, links:[], memo:'', fromWishIds:[], visits:[] };
     PLACE_FORM_FIELDS.forEach(function(k){ p[k] = d[k]; });
     var v = null;
     if (visit) {
@@ -1371,7 +1647,8 @@
       if (!d.area.trim()) d.area = wish.area;
     }
     var place = applyDraft(cur, visit, d);
-    if (wish) place = applyWish(place, wish, !cur);
+    // 폼에서 위치를 직접 떼거나 고른 경우(locationTouched)에는 가고 싶은 곳의 위치로 채우지 않는다
+    if (wish) place = applyWish(place, wish, !cur && !d.locationTouched);
     var wi = wish ? state.wishes.indexOf(wish) : -1;
     if (wi !== -1) state.wishes.splice(wi, 1);
     var ok;
@@ -1395,7 +1672,7 @@
   //  - 링크는 links 끝에 (이미 있으면 붙이지 않는다)
   //  - 메모는 가게 memo 끝에 줄을 바꿔 (비어 있지 않을 때만)
   //  - fromWishIds에 가고 싶은 곳 id
-  //  - 새 가게일 때만: 위치가 비어 있으면 가고 싶은 곳의 위치
+  //  - isNew일 때만(새 가게이고 폼에서 위치를 건드리지 않았을 때): 위치가 비어 있으면 가고 싶은 곳의 위치
   function applyWish(p, w, isNew){
     p = clone(p);
     if (w.link && p.links.indexOf(w.link) === -1) p.links.push(w.link);
@@ -1418,6 +1695,7 @@
     if (o.wishId && !fromWish) { toast('이미 지운 기록이에요'); return; }
     if (fromWish) {
       draft.name = fromWish.name; draft.category = fromWish.category; draft.area = fromWish.area;
+      draft.location = fromWish.location ? clone(fromWish.location) : null;
       draft.menus = fromWish.wantMenus.map(function(n){ var m = newMenu(); m.name = n; return m; });
     }
     if (!draft.menus.length) draft.menus.push(newMenu());
@@ -1453,20 +1731,44 @@
     }
     drawPhotos();
 
-    // 새 가게 이름에서 손을 떼면 같은 가게가 있는지 본다. 알림 칸만 바꾼다
+    // 새 가게의 위치. 고르면 빈 이름·빈 종류만 채우고 같은 가게를 다시 본다
+    var locRoot = $('#fd-ed-location [data-loc-root]', sheet);
+    if (locRoot) mountLocPicker(locRoot, {
+      get: function(){ return draft.location; },
+      query: function(){ return draft.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        draft.location = loc; draft.locationTouched = true;
+        if (!draft.name.trim()) { draft.name = loc.placeName; $('#fd-ed-name', sheet).value = draft.name; }
+        var c = draft.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          draft.category = c;
+          $all('#fd-ed-placebox [data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+        checkSame();
+      },
+      onRemove: function(){
+        dirty = true;
+        draft.location = null; draft.locationTouched = true;
+        checkSame();
+      }
+    });
+
+    function formCand(){ return { name:draft.name, location:draft.location }; }
+    // 새 가게 이름에서 손을 떼거나 위치를 고르면 같은 가게가 있는지 본다. 알림 칸만 바꾼다
     function checkSame(){
       if (mode !== 'new' || !sameEl) return;
-      var key = normName(draft.name);
+      var cand = formCand(), key = sameKeyOf(cand);
       if (key === sameKey) return;
-      var list = key && key !== dismissedKey ? samePlaceCandidates({ name:draft.name, location:null }) : [];
+      var list = key && key !== dismissedKey ? samePlaceCandidates(cand) : [];
       sameKey = list.length ? key : '';
       sameEl.innerHTML = list.length ? sameNoticeHTML(list) : '';
-      if (!list.length) checkWish({ name:draft.name, location:null });   // 다녀온 곳을 먼저 본다
+      if (!list.length) checkWish(cand);   // 다녀온 곳을 먼저 본다
     }
     // 가고 싶은 곳에 같은 곳이 있는지 본다. 묻는 칸만 바꾼다
     function checkWish(cand){
       if (wishFixed || !wishEl) return;
-      var key = normName(cand.name);
+      var key = sameKeyOf(cand);
       if (wishMove && key === wishChosenKey) return;
       if (key && key === wishKey) return;
       wishMove = null; wishChosenKey = '';
@@ -1591,7 +1893,7 @@
         case 'save': commit(); break;
         case 'same-new':
           dismissedKey = sameKey; sameKey = ''; sameEl.innerHTML = '';
-          checkWish({ name:draft.name, location:null });
+          checkWish(formCand());
           break;
         case 'wish-no':
           wishDismissedKey = wishKey; wishKey = ''; wishEl.innerHTML = '';
@@ -1740,8 +2042,7 @@
         '<input class="fd-input big" id="fd-pf-name" data-pf="name" value="' + esc(d.name) + '" placeholder="가게 이름" maxlength="40" autocomplete="off"></div>' +
       '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-pf-area">지역</label><input class="fd-input" id="fd-pf-area" data-pf="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
-      // 위치 자리: 위치 작업에서 여기에 위치 붙이기·바꾸기·떼기를 더한다
-      '<div id="fd-pf-location"></div>' +
+      '<div id="fd-pf-location">' + locPickerHTML() + '</div>' +
       '<div class="fd-field"><label class="fd-label">링크 <small>http로 시작하면 눌러서 열 수 있어요</small></label>' +
         '<div class="fd-link-edits" id="fd-pf-links">' + d.links.map(linkEditHTML).join('') + '</div>' +
         '<button type="button" class="fd-add-line fd-press" data-act="add-link" style="margin-top:8px">🔗 링크 추가</button></div>' +
@@ -1752,7 +2053,8 @@
   function openPlaceForm(id){
     var src = findPlace(id);
     if (!src) return;
-    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo };
+    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo,
+              location:src.location ? clone(src.location) : null, locationTouched:false };
     var dirty = false;
     var sheet = openSheet({
       title:'가게 정보 고치기', leftLabel:'취소',
@@ -1761,6 +2063,22 @@
     });
     sheet.dataset.form = 'place';
     var linksEl = $('#fd-pf-links', sheet);
+    // 위치 붙이기·바꾸기·떼기. 이름은 비어 있을 때만, 종류는 고르지 않았을 때만 채운다
+    mountLocPicker($('#fd-pf-location [data-loc-root]', sheet), {
+      get: function(){ return d.location; },
+      query: function(){ return d.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        d.location = loc; d.locationTouched = true;
+        if (!d.name.trim()) { d.name = loc.placeName; $('#fd-pf-name', sheet).value = d.name; }
+        var c = d.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          d.category = c;
+          $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+      },
+      onRemove: function(){ dirty = true; d.location = null; d.locationTouched = true; }
+    });
     sheet.addEventListener('input', function(e){
       dirty = true;
       if (e.target.dataset.pf) d[e.target.dataset.pf] = e.target.value;
@@ -1808,6 +2126,7 @@
       next.area = d.area === cur.area ? cur.area : d.area.trim();
       next.links = links;
       next.memo = d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
+      if (d.locationTouched) next.location = d.location ? clone(d.location) : null;   // 건드리지 않았으면 저장된 그대로
       touch(next, null);
       next = normalizePlace(next);
       if (!replacePlace(cur, next)) return;
@@ -1824,8 +2143,7 @@
     var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(w.category) + '</div><div class="fd-place-name">' +
       '<h1 class="fd-detail-title">' + esc(w.name || '이름 없는 곳') + '</h1>' +
       (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') +
-      // 위치 자리: 위치 작업에서 위치 검색으로 붙인 주소를 여기에 보인다
-      (w.location && w.location.address ? '<div class="fd-detail-addr">📍 ' + esc(w.location.address) + '</div>' : '') +
+      locDetailHTML(w) +
       '</div></div>';
     if (w.link) html += '<div class="fd-section-title">🔗 알게 된 곳</div><div class="fd-links">' + linkHTML(w.link) + '</div>';
     if (w.wantMenus.length) html += '<div class="fd-section-title">😋 먹어 보고 싶은 메뉴</div><div class="fd-want-chips">' +
@@ -1891,8 +2209,7 @@
       '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-wf-name">가게 이름</label>' +
         '<input class="fd-input big" id="fd-wf-name" data-wf="name" value="' + esc(d.name) + '" placeholder="어디에 가 보고 싶나요?" maxlength="40" autocomplete="off">' +
         '<div id="fd-wf-same"></div></div>' +
-      // 위치 검색 자리: 위치 작업에서 여기에 위치 검색 칸을 더한다 (값은 wish.location)
-      '<div id="fd-wf-location"></div>' +
+      '<div id="fd-wf-location">' + locPickerHTML() + '</div>' +
       '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-wf-area">지역</label><input class="fd-input" id="fd-wf-area" data-wf="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-wf-link">알게 된 곳 링크 <small>http로 시작하면 눌러서 열 수 있어요</small></label>' +
@@ -1923,6 +2240,8 @@
     if (id && !src) { toast('이미 지운 기록이에요'); return; }
     var d = src ? { name:src.name, category:src.category, area:src.area, link:src.link, wantMenus:src.wantMenus.slice(), memo:src.memo }
                 : { name:'', category:'', area:'', link:'', wantMenus:[], memo:'' };
+    d.location = src && src.location ? clone(src.location) : null;
+    d.locationTouched = false;
     var dirty = false;
     var sheet = openSheet({
       title: src ? '가고 싶은 곳 고치기' : '가고 싶은 곳 넣기', leftLabel:'취소',
@@ -1931,12 +2250,28 @@
     });
     sheet.dataset.form = 'wish';
     var wantsEl = $('#fd-wf-wants', sheet), sameEl = $('#fd-wf-same', sheet);
-    // 고칠 때 원래 이름 그대로면 묻지 않는다
-    var sameKey = '', okKey = src ? normName(src.name) : '';
+    mountLocPicker($('#fd-wf-location [data-loc-root]', sheet), {
+      get: function(){ return d.location; },
+      query: function(){ return d.name; },
+      onPick: function(loc, r){
+        dirty = true;
+        d.location = loc; d.locationTouched = true;
+        if (!d.name.trim()) { d.name = loc.placeName; $('#fd-wf-name', sheet).value = d.name; }
+        var c = d.category ? '' : kakaoCategory(r.category_name, r.category_group_code);
+        if (c) {
+          d.category = c;
+          $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === c); });
+        }
+        checkSame();
+      },
+      onRemove: function(){ dirty = true; d.location = null; d.locationTouched = true; checkSame(); }
+    });
+    // 고칠 때 원래 이름·위치 그대로면 묻지 않는다
+    var sameKey = '', okKey = src ? sameKeyOf(src) : '';
     function checkSame(){
-      var key = normName(d.name);
+      var cand = { name:d.name, location:d.location };
+      var key = sameKeyOf(cand);
       if (key === sameKey) return;
-      var cand = { name:d.name, location:src ? src.location : null };
       var ps = key && key !== okKey ? samePlaceCandidates(cand) : [];
       var ws = key && key !== okKey ? sameWishCandidates(cand, id) : [];
       sameKey = ps.length || ws.length ? key : '';
@@ -2006,6 +2341,7 @@
       next.link = keep(d.link, cur && cur.link);
       next.wantMenus = wants;
       next.memo = cur && d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
+      if (!cur || d.locationTouched) next.location = d.location ? clone(d.location) : null;   // 건드리지 않았으면 저장된 그대로
       next.updatedAt = now;
       next = normalizeWish(next);
       if (cur) {
