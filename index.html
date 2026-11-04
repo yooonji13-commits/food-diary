@@ -295,6 +295,48 @@
   }
   .fd-toast.show{ opacity:1; transform:none; pointer-events:auto; }
   .fd-toast button{ color:#F3CC97; font-weight:700; flex:none; padding:4px 2px; }
+  [hidden]{ display:none !important; }
+
+  /* ---- place screen ---- */
+  .fd-card-sub{ display:flex; align-items:center; gap:6px; margin-top:2px; min-width:0; }
+  .fd-visit-n{ font-size:11.5px; font-weight:700; color:var(--ink-soft); background:var(--surface-alt); border-radius:var(--radius-pill); padding:1px 8px; white-space:nowrap; }
+  .fd-place-head{ display:flex; align-items:center; gap:12px; margin-top:6px; }
+  .fd-place-emoji{ width:58px; height:58px; border-radius:var(--radius-md); background:var(--surface-alt); display:grid; place-items:center; font-size:32px; flex:none; }
+  .fd-place-name{ min-width:0; }
+  .fd-place-head .fd-detail-title{ margin:0; }
+  .fd-place-revisit{ margin-top:16px; }
+  .fd-links{ display:flex; flex-direction:column; gap:6px; }
+  .fd-link{ display:block; background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:11px 14px; font-size:14px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:none; }
+  a.fd-link{ color:var(--accent); font-weight:600; }
+  .fd-btn-soft{ background:var(--surface); border:1px solid var(--line); color:var(--ink); }
+  .fd-detail-actions button{ font-size:14.5px; white-space:nowrap; }
+  .fd-visit{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:12px; margin-top:10px; animation:fd-rise .25s ease both; }
+  .fd-visit .fd-gallery{ margin:0 0 10px; border-radius:var(--radius-md); overflow:hidden; }
+  .fd-visit .fd-gallery-count{ right:10px; bottom:10px; }
+  .fd-visit-top{ display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; margin:0 2px; }
+  .fd-visit-date{ font-weight:700; font-size:14.5px; }
+  .fd-visit .fd-rate-word{ font-size:13px; }
+  .fd-visit-quote{ margin:6px 2px 0; font-size:15.5px; font-weight:600; line-height:1.5; word-break:keep-all; }
+  .fd-visit .fd-menu-list, .fd-visit .fd-memo{ box-shadow:none; background:var(--bg); border-radius:var(--radius-md); margin-top:8px; }
+  .fd-visit .fd-menu-item{ padding:10px 12px; }
+  .fd-visit-actions{ display:flex; justify-content:flex-end; gap:6px; margin-top:10px; }
+  .fd-mini-btn{ height:34px; padding:0 14px; border-radius:var(--radius-pill); border:1px solid var(--line); background:var(--surface); font-size:13.5px; color:var(--ink-soft); }
+  .fd-mini-btn.danger{ color:var(--danger); }
+
+  /* ---- same place notice ---- */
+  .fd-same{ margin-top:10px; background:var(--accent-soft); border-radius:var(--radius-md); padding:12px; animation:fd-rise .2s ease both; }
+  .fd-same b{ display:block; font-size:14.5px; color:var(--accent); }
+  .fd-same p{ margin:2px 0 4px; font-size:13px; color:var(--ink-soft); }
+  .fd-same-item{ display:flex; align-items:center; gap:8px; background:var(--surface); border-radius:var(--radius-sm); padding:8px 8px 8px 12px; margin-top:6px; }
+  .fd-same-item div{ flex:1; min-width:0; }
+  .fd-same-item strong{ display:block; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-same-item small{ display:block; font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-same-item button{ flex:none; max-width:46%; min-height:36px; padding:4px 12px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink); font-size:12.5px; font-weight:700; line-height:1.25; word-break:keep-all; }
+  .fd-same-new{ margin-top:8px; width:100%; height:38px; border-radius:var(--radius-pill); border:1px solid var(--line); background:var(--surface); font-size:13.5px; color:var(--ink-soft); }
+  .fd-form-place{ margin-top:8px; display:flex; align-items:center; gap:10px; background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow); padding:12px 14px; font-weight:700; font-size:16.5px; min-width:0; }
+  .fd-form-place span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-link-edits{ display:flex; flex-direction:column; gap:6px; }
+  .fd-link-edit{ align-items:center; }
 </style>
 </head>
 <body>
@@ -700,9 +742,17 @@
   // 방문이 없는 가게도 같은 모양으로 그리도록 빈 방문을 쓴다 (저장하지 않는 화면용 값)
   var NO_VISIT = { id:'', visitedAt:'', rating:0, oneLiner:'', menus:[], photos:[], memo:'', createdAt:'', updatedAt:'' };
   function shownVisit(p){ return latestVisit(p) || NO_VISIT; }
+  // 목록 별점: 별점이 있는 방문(rating>0) 중 가장 최근 방문의 별점. 없으면 0 (별을 그리지 않는다)
+  function listRating(p){
+    var vs = sortedVisits(p);
+    for (var i = 0; i < vs.length; i++) if (vs[i].rating > 0) return vs[i].rating;
+    return 0;
+  }
+  function lastVisitedAt(p){ var v = latestVisit(p); return v ? v.visitedAt : ''; }
+  // 다녀온 곳 검색 범위: 가게 이름·지역·종류·메모·주소 + 모든 방문의 메뉴 이름·한마디·한줄평·메모
   function matches(p, q){
     if (!q) return true;
-    var hay = [p.name, p.area, p.category, p.memo];
+    var hay = [p.name, p.area, p.category, p.memo, p.location ? p.location.address : ''];
     p.visits.forEach(function(v){
       hay.push(v.oneLiner, v.memo);
       v.menus.forEach(function(m){ hay.push(m.name + ' ' + m.note); });
@@ -713,33 +763,45 @@
   function visible(){
     var list = state.places.filter(function(p){
       return (!ui.cat || p.category === ui.cat) && matches(p, ui.q);
-    }).map(function(p){ return { p:p, v:shownVisit(p) }; });
+    }).map(function(p){ return { p:p, last:lastVisitedAt(p), r:listRating(p) }; });
     list.sort(function(a, b){
       if (ui.sort === 'rating') {
-        var r = cmp(b.v.rating, a.v.rating);
+        if (!a.r !== !b.r) return a.r ? -1 : 1;   // 목록 별점이 없는 가게는 맨 뒤
+        var r = cmp(b.r, a.r);
         if (r) return r;
       }
-      return cmp(b.v.visitedAt, a.v.visitedAt) || cmp(b.v.createdAt || b.p.createdAt, a.v.createdAt || a.p.createdAt);
+      return cmp(b.last, a.last) || cmp(b.p.createdAt, a.p.createdAt);
     });
     return list.map(function(x){ return x.p; });
   }
   function cardHTML(p, i){
-    var v = shownVisit(p);
-    var thumb = v.photos.length
-      ? '<img data-pid="' + esc(v.photos[0]) + '" alt="">' + (v.photos.length > 1 ? '<span class="fd-thumb-count">' + v.photos.length + '</span>' : '')
+    var vs = sortedVisits(p), v = vs[0] || NO_VISIT, pv = null;
+    for (var k = 0; k < vs.length && !pv; k++) if (vs[k].photos.length) pv = vs[k];
+    var thumb = pv
+      ? '<img data-pid="' + esc(pv.photos[0]) + '" alt="">' + (pv.photos.length > 1 ? '<span class="fd-thumb-count">' + pv.photos.length + '</span>' : '')
       : catEmoji(p.category);
+    var r = listRating(p);
     var meta = [p.area, p.category, p.visits.length ? fmtDate(v.visitedAt) : '방문 기록 없음'].filter(Boolean).map(esc).join(' · ');
-    var menus = v.menus.filter(function(m){ return m.name; }).slice(0, 4).map(function(m){
-      return '<span class="fd-menu-chip">' + esc(m.name) + '</span>';
-    }).join('');
+    var sub = (r ? starsRO(r) : '') + (p.visits.length >= 2 ? '<span class="fd-visit-n">' + p.visits.length + '번 방문</span>' : '');
+    // 메뉴 칩: 최근 방문의 메뉴부터, 이름이 같은 메뉴는 한 번만, 최대 4개
+    var seen = [], chips = [];
+    vs.forEach(function(vv){
+      vv.menus.forEach(function(m){
+        var key = m.name.trim();
+        if (!key || seen.indexOf(key) !== -1 || chips.length >= 4) return;
+        seen.push(key);
+        chips.push('<span class="fd-menu-chip">' + esc(m.name) + '</span>');
+      });
+    });
     return '<button class="fd-card fd-press" data-open="' + esc(p.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
       '<div class="fd-thumb">' + thumb + '</div>' +
       '<div class="fd-card-body">' +
         '<div class="fd-card-top"><span class="fd-card-title">' + esc(p.name || '이름 없는 가게') + '</span>' +
           (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : '') + '</div>' +
-        '<div class="fd-card-meta">' + (v.rating ? starsRO(v.rating) + ' ' : '') + meta + '</div>' +
+        (sub ? '<div class="fd-card-sub">' + sub + '</div>' : '') +
+        '<div class="fd-card-meta">' + meta + '</div>' +
         (v.oneLiner ? '<div class="fd-card-quote">' + esc(v.oneLiner) + '</div>' : '') +
-        (menus ? '<div class="fd-menu-chips">' + menus + '</div>' : '') +
+        (chips.length ? '<div class="fd-menu-chips">' + chips.join('') + '</div>' : '') +
       '</div></button>';
   }
   function renderCats(){
@@ -752,12 +814,14 @@
     });
     $('#fd-cats').innerHTML = html;
   }
+  // 요약 줄: N곳 · 방문 M번 · 평균 ★x.x (평균은 목록 별점이 있는 가게들의 목록 별점 평균)
   function renderStats(){
-    var n = state.places.length;
-    var rated = state.places.map(shownVisit).filter(function(v){ return v.rating; });
-    var avg = rated.length ? rated.reduce(function(s, v){ return s + v.rating; }, 0) / rated.length : 0;
+    var n = state.places.length, m = 0;
+    state.places.forEach(function(p){ m += p.visits.length; });
+    var rated = state.places.map(listRating).filter(Boolean);
+    var avg = rated.length ? rated.reduce(function(s, r){ return s + r; }, 0) / rated.length : 0;
     $('#fd-stats').textContent = n
-      ? '지금까지 ' + n + '곳을 기록했어요' + (avg ? ' · 평균 ★' + avg.toFixed(1) : '')
+      ? n + '곳 · 방문 ' + m + '번' + (rated.length ? ' · 평균 ★' + avg.toFixed(1) : '')
       : '맛있게 먹은 곳을 하나씩 남겨 보세요';
   }
   // 검색창은 건드리지 않고 목록만 다시 그린다
@@ -834,53 +898,103 @@
     });
   }
 
-  // ---------- 상세 ----------
-  function detailHTML(p){
-    var html = '', v = shownVisit(p);
-    if (v.photos.length) {
-      html += '<div class="fd-gallery"><div class="fd-gallery-track">' +
-        v.photos.map(function(id, i){
-          return '<button data-view="' + i + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
-        }).join('') + '</div>' +
-        (v.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + v.photos.length + '</span>' : '') + '</div>';
-    } else {
-      html += '<div class="fd-detail-hero-empty">' + catEmoji(p.category) + '</div>';
-    }
-    var when = !p.visits.length ? '방문 기록 없음' : v.visitedAt ? fmtDate(v.visitedAt) + ' 방문' : '';
-    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area, when]
-      .filter(Boolean).map(esc).join(' · ');
-    html += '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>';
-    if (meta) html += '<div class="fd-detail-meta">' + meta + '</div>';
-    if (v.rating || p.revisit) {
-      html += '<div class="fd-detail-rate">' + (v.rating ? starsRO(v.rating, 'lg') + '<span class="fd-rate-word">' + esc(RATE_WORDS[v.rating]) + '</span>' : '') +
-        (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : p.revisit === 'no' ? '<span class="fd-again" style="color:var(--muted);background:var(--surface-alt)">한 번이면 충분</span>' : '') + '</div>';
-    }
-    if (v.oneLiner) html += '<div class="fd-quote-box">' + esc(v.oneLiner) + '</div>';
+  // ---------- 가게 화면 ----------
+  // http:// 또는 https://로 시작하는 링크만 새 창으로 연다. 나머지는 글자로만 보여 준다
+  function isWebLink(s){ return /^https?:\/\//i.test(s); }
+  function linkHTML(l){
+    return isWebLink(l)
+      ? '<a class="fd-link" href="' + esc(l) + '" target="_blank" rel="noopener noreferrer">🔗 ' + esc(l) + '</a>'
+      : '<span class="fd-link">' + esc(l) + '</span>';
+  }
+  function revisitToggleHTML(cur, attr){
+    return '<div class="fd-toggle">' +
+      '<button type="button" ' + attr('yes') + (cur === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
+      '<button type="button" ' + attr('no') + (cur === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div>';
+  }
+  function galleryHTML(v){
+    if (!v.photos.length) return '';
+    return '<div class="fd-gallery"><div class="fd-gallery-track">' +
+      v.photos.map(function(id, i){
+        return '<button data-view="' + i + '" data-vid="' + esc(v.id) + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
+      }).join('') + '</div>' +
+      (v.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + v.photos.length + '</span>' : '') + '</div>';
+  }
+  function visitHTML(v){
+    var html = '<div class="fd-visit" data-visit="' + esc(v.id) + '">' + galleryHTML(v) +
+      '<div class="fd-visit-top"><span class="fd-visit-date">' + (v.visitedAt ? esc(fmtDate(v.visitedAt)) + ' 방문' : '날짜 없음') + '</span>' +
+      (v.rating ? starsRO(v.rating) + '<span class="fd-rate-word">' + esc(RATE_WORDS[v.rating]) + '</span>' : '') + '</div>';
+    if (v.oneLiner) html += '<div class="fd-visit-quote">“' + esc(v.oneLiner) + '”</div>';
     var menus = v.menus.filter(function(m){ return m.name || m.note || m.rating; });
     if (menus.length) {
-      html += '<div class="fd-section-title">🍽️ 먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
-        menus.map(function(m){
-          return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
-            (m.rating ? starsRO(m.rating) : '') + '</div>' +
-            (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
-        }).join('') + '</div>';
+      html += '<div class="fd-menu-list">' + menus.map(function(m){
+        return '<div class="fd-menu-item"><div class="fd-menu-item-top"><span class="fd-menu-item-name">' + esc(m.name || '이름 없는 메뉴') + '</span>' +
+          (m.rating ? starsRO(m.rating) : '') + '</div>' +
+          (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
     }
-    if (v.memo) html += '<div class="fd-section-title">📝 메모</div><div class="fd-memo">' + esc(v.memo) + '</div>';
+    if (v.memo) html += '<div class="fd-memo">' + esc(v.memo) + '</div>';
+    html += '<div class="fd-visit-actions">' +
+      '<button class="fd-mini-btn fd-press" data-act="edit-visit" data-vid="' + esc(v.id) + '">✏️ 고치기</button>' +
+      '<button class="fd-mini-btn danger fd-press" data-act="del-visit" data-vid="' + esc(v.id) + '">지우기</button></div></div>';
+    return html;
+  }
+  function detailHTML(p){
+    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area].filter(Boolean).map(esc).join(' · ');
+    var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(p.category) + '</div><div class="fd-place-name">' +
+      '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>' +
+      (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') + '</div></div>';
+    // 위치 자리: 위치 작업에서 여기에 주소(카카오 정식 이름이 다르면 함께)를 더한다
+    html += '<div class="fd-place-revisit">' + revisitToggleHTML(p.revisit, function(v){ return 'data-act="revisit" data-val="' + v + '"'; }) + '</div>';
+    if (p.links.length) html += '<div class="fd-section-title">🔗 링크</div><div class="fd-links">' + p.links.map(linkHTML).join('') + '</div>';
     if (p.memo) html += '<div class="fd-section-title">🏠 가게 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
-    html += '<div class="fd-detail-actions"><button class="fd-btn-ghost fd-press" data-act="delete">지우기</button>' +
-      '<button class="fd-btn-primary fd-press" data-act="edit">✏️ 고치기</button></div>';
+    html += '<div class="fd-detail-actions">' +
+      '<button class="fd-btn-soft fd-press" data-act="edit-place">🏠 가게 정보 고치기</button>' +
+      '<button class="fd-btn-primary fd-press" data-act="add-visit">🍴 또 다녀왔어요</button></div>';
+    html += '<div class="fd-section-title">🍽️ 방문 기록 ' + p.visits.length + '번</div>';
+    html += p.visits.length ? sortedVisits(p).map(visitHTML).join('') : '<div class="fd-memo">아직 방문 기록이 없어요</div>';
+    html += '<button class="fd-danger-btn fd-press" data-act="delete-place">가게 지우기</button>';
     return html;
   }
   function fillDetail(sheet, p){
     var inner = $('.fd-sheet-inner', sheet);
     inner.innerHTML = detailHTML(p);
     hydrateImgs(inner);
-    var track = $('.fd-gallery-track', inner), count = $('.fd-gallery-count', inner);
-    var n = shownVisit(p).photos.length;
-    if (track && count) track.addEventListener('scroll', function(){
-      var i = Math.round(track.scrollLeft / track.clientWidth);
-      count.textContent = (i + 1) + ' / ' + n;
-    }, { passive:true });
+    $all('.fd-gallery', inner).forEach(function(g){
+      var track = $('.fd-gallery-track', g), count = $('.fd-gallery-count', g);
+      if (!count) return;
+      var n = track.children.length;
+      track.addEventListener('scroll', function(){
+        var i = Math.round(track.scrollLeft / track.clientWidth);
+        count.textContent = (i + 1) + ' / ' + n;
+      }, { passive:true });
+    });
+  }
+  // 열려 있는 가게 화면을 지금 값으로 다시 채운다. 가게가 없어졌으면 닫는다
+  function refreshDetail(id){
+    $all('.fd-sheet[data-detail]').forEach(function(s){
+      if (s.closed || s.dataset.detail !== id) return;
+      var p = findPlace(id);
+      if (p) fillDetail(s, p); else s.close();
+    });
+  }
+  // 가게 하나를 새 값으로 바꿔 저장한다. 저장하지 못하면 되돌리고 false
+  function replacePlace(cur, next){
+    var i = state.places.indexOf(cur);
+    if (i === -1) return false;
+    state.places[i] = next;
+    if (!save()) { state.places[i] = cur; return false; }
+    return true;
+  }
+  // 가게 화면의 또 갈래요 바꾸기. 같은 쪽을 다시 누르면 비운다. 바로 저장한다
+  function setRevisit(id, val){
+    var cur = findPlace(id);
+    if (!cur) return null;
+    var next = clone(cur);
+    next.revisit = cur.revisit === val ? '' : val;
+    touch(next, null);
+    if (!replacePlace(cur, next)) return null;
+    renderList();
+    return next.revisit;
   }
   function openDetail(id){
     var p = findPlace(id);
@@ -891,27 +1005,54 @@
     sheet.addEventListener('click', function(e){
       var b = e.target.closest('[data-act],[data-view]');
       if (!b) return;
-      var cur = findPlace(id);
-      if (b.dataset.act === 'close') sheet.close();
-      else if (!cur) sheet.close();
-      else if (b.dataset.act === 'edit') openEdit(id);
-      else if (b.dataset.act === 'delete') {
-        if (!confirm('‘' + (cur.name || '이름 없는 가게') + '’ 기록을 지울까요?')) return;
-        removePlace(id);
-        sheet.close();
+      var cur = findPlace(id), act = b.dataset.act;
+      if (act === 'close') { sheet.close(); return; }
+      if (!cur) { sheet.close(); return; }
+      if (act === 'revisit') {
+        var now = setRevisit(id, b.dataset.val);
+        if (now != null) $all('[data-act="revisit"]', sheet).forEach(function(x){ x.classList.toggle('on', x.dataset.val === now); });
       }
-      else if (b.dataset.view != null) openViewer(shownVisit(cur).photos, Number(b.dataset.view));
+      else if (act === 'add-visit') openVisitForm({ mode:'add', placeId:id });
+      else if (act === 'edit-place') openPlaceForm(id);
+      else if (act === 'edit-visit') openVisitForm({ mode:'edit', placeId:id, visitId:b.dataset.vid });
+      else if (act === 'del-visit') deleteVisit(id, b.dataset.vid);
+      else if (act === 'delete-place') {
+        var n = cur.visits.length;
+        if (!confirm('‘' + (cur.name || '이름 없는 가게') + '’' + (n ? '와 방문 기록 ' + n + '번을 모두' : '을') + ' 지울까요?')) return;
+        removePlace(id);
+      }
+      else if (b.dataset.view != null) {
+        var v = findVisit(cur, b.dataset.vid);
+        if (v) openViewer(v.photos, Number(b.dataset.view));
+      }
     });
   }
 
+  // ---------- 지우기와 되돌리기 ----------
+  // 되돌리기를 기다리는 지우기는 하나뿐이다. place는 사진 확인용으로 { visits:[...] } 모양을 갖는다
   var pendingDelete = null;
   function finishPendingDelete(){
     if (!pendingDelete) return;
-    clearTimeout(pendingDelete.timer);
-    var ids = placePhotos(pendingDelete.place);
+    var pd = pendingDelete;
+    clearTimeout(pd.timer);
     pendingDelete = null;
+    if (undoToast && undoToast.pd === pd) { undoToast = null; $('#fd-toast button').hidden = true; }
     // 다른 방문이 같은 사진을 쓰지 않을 때만 지운다
-    photoDel(ids.filter(function(pid){ return !photoInUse(pid); }));
+    photoDel(placePhotos(pd.place).filter(function(pid){ return !photoInUse(pid); }));
+  }
+  function startPendingDelete(pd, msg){
+    pd.timer = setTimeout(finishPendingDelete, 7000);
+    pendingDelete = pd;
+    showUndo(pd, msg, function(){
+      if (pendingDelete !== pd) return;
+      if (!pd.restore()) return;   // 저장하지 못하면 되돌리기를 그대로 남긴다
+      clearTimeout(pd.timer);
+      pendingDelete = null;
+      undoToast = null;
+      render();
+      refreshDetail(pd.placeId);
+      toast('되돌렸어요 🙌');
+    });
   }
   function removePlace(id){
     finishPendingDelete();
@@ -919,16 +1060,49 @@
     state.places.forEach(function(p, i){ if (p.id === id) idx = i; });
     if (idx === -1) return;
     var place = state.places.splice(idx, 1)[0];
-    save(); render();
-    pendingDelete = { place:place, index:idx, timer:setTimeout(finishPendingDelete, 7000) };
-    toast('기록을 지웠어요', '되돌리기', function(){
-      if (!pendingDelete || pendingDelete.place !== place) return;
-      clearTimeout(pendingDelete.timer);
-      state.places.splice(Math.min(pendingDelete.index, state.places.length), 0, place);
-      pendingDelete = null;
-      save(); render();
-      toast('되돌렸어요 🙌');
-    }, 7000);
+    if (!save()) { state.places.splice(idx, 0, place); return; }
+    render();
+    refreshDetail(id);
+    startPendingDelete({ place:place, placeId:id, restore:function(){
+      if (findPlace(id)) return true;
+      state.places.splice(Math.min(idx, state.places.length), 0, place);
+      if (save()) return true;
+      state.places.splice(state.places.indexOf(place), 1);
+      return false;
+    } }, '기록을 지웠어요');
+  }
+  function removeVisit(placeId, vid){
+    finishPendingDelete();
+    var cur = findPlace(placeId), v = cur && findVisit(cur, vid);
+    if (!v) return;
+    var idx = cur.visits.indexOf(v);
+    var next = clone(cur);
+    next.visits.splice(idx, 1);
+    touch(next, null);
+    if (!replacePlace(cur, next)) return;
+    render();
+    refreshDetail(placeId);
+    startPendingDelete({ place:{ visits:[v] }, placeId:placeId, restore:function(){
+      var c = findPlace(placeId);
+      if (!c) return false;
+      if (findVisit(c, v.id)) return true;
+      var r = clone(c);
+      r.visits.splice(Math.min(idx, r.visits.length), 0, clone(v));
+      touch(r, null);
+      return replacePlace(c, r);
+    } }, '방문 기록을 지웠어요');
+  }
+  // 방문 지우기. 가게의 마지막 방문이면 가게까지 지운다
+  function deleteVisit(placeId, vid){
+    var p = findPlace(placeId), v = p && findVisit(p, vid);
+    if (!v) return;
+    if (p.visits.length <= 1) {
+      if (!confirm('마지막 방문 기록이라 ‘' + (p.name || '이름 없는 가게') + '’ 가게까지 지워져요. 지울까요?')) return;
+      removePlace(placeId);
+      return;
+    }
+    if (!confirm((v.visitedAt ? fmtDate(v.visitedAt) + ' ' : '') + '방문 기록을 지울까요?')) return;
+    removeVisit(placeId, vid);
   }
 
   function openViewer(ids, start){
@@ -948,7 +1122,29 @@
     $('.fd-viewer-close', el).addEventListener('click', function(){ el.remove(); unlock(); });
   }
 
-  // ---------- 쓰기·고치기 ----------
+  // ---------- 같은 가게 알아보기 ----------
+  // 이름 비교: 앞뒤·안쪽 공백을 무시하고 대소문자를 가리지 않는다
+  function normName(s){ return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); }
+  // 같은 가게일 수 있는 다녀온 곳 후보. cand = { name, location }.
+  // 지금은 이름만 본다. 위치 작업에서 "둘 다 위치가 있으면 kakaoId로만" 규칙을 여기에 더한다
+  function samePlaceCandidates(cand, excludeId){
+    var key = normName(cand && cand.name);
+    if (!key) return [];
+    return state.places.filter(function(p){ return p.id !== excludeId && normName(p.name) === key; });
+  }
+  function sameNoticeHTML(list){
+    return '<div class="fd-same"><b>이미 기록한 가게예요</b><p>혹시 같은 가게인가요?' +
+      (list.length > 1 ? ' 같은 이름이 ' + list.length + '곳 있어요. 맞는 곳을 골라 주세요.' : '') + '</p>' +
+      list.map(function(p){
+        var last = lastVisitedAt(p);
+        var meta = [p.area, p.category, last ? '마지막 ' + fmtDate(last) : '', '방문 ' + p.visits.length + '번'].filter(Boolean).map(esc).join(' · ');
+        return '<div class="fd-same-item"><div><strong>' + catEmoji(p.category) + ' ' + esc(p.name) + '</strong><small>' + meta + '</small></div>' +
+          '<button type="button" class="fd-press" data-same-pick="' + esc(p.id) + '">이 가게에 방문으로 추가</button></div>';
+      }).join('') +
+      '<button type="button" class="fd-same-new fd-press" data-act="same-new">따로 새 가게로</button></div>';
+  }
+
+  // ---------- 방문 쓰기·고치기 ----------
   function newMenu(){ return { id:uid(), name:'', rating:0, note:'' }; }
   function starsIn(v, cls){
     var s = '';
@@ -968,20 +1164,31 @@
       (i === 0 ? '<span class="fd-cover">대표</span>' : '') +
       '<button type="button" class="fd-photo-del" data-act="del-photo" aria-label="사진 빼기">✕</button></div>';
   }
-  function editHTML(d){
-    return '' +
-      '<div class="fd-field" style="margin-top:8px"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
+  function catPickHTML(cur){
+    return '<div class="fd-cat-pick">' + CATS.map(function(c){
+      return '<button type="button" class="fd-chip' + (cur === c.name ? ' on' : '') + '" data-pick-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
+    }).join('') + '</div>';
+  }
+  // mode: 'new' 새 가게 + 새 방문 / 'add' 이 가게에 새 방문 / 'edit' 이미 있는 방문 고치기
+  function visitFormHTML(d, mode, place){
+    var html = '' +
+      // 'add'·'edit'에서는 가게 칸 대신 가게 이름만 보인다 ('new'에서 같은 가게를 고르면 이 줄로 바뀐다)
+      '<div class="fd-form-place" id="fd-ed-placehead"' + (mode === 'new' ? ' hidden' : '') + '>' +
+        '<span id="fd-ed-placeemoji">' + catEmoji(place ? place.category : '') + '</span><span id="fd-ed-placename">' + esc(place ? place.name || '이름 없는 가게' : '') + '</span></div>';
+    if (mode === 'new') {
+      html += '<div id="fd-ed-placebox">' +
+        '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
+          '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off">' +
+          '<div id="fd-ed-same"></div></div>' +
+        // 위치 검색 자리: 위치 작업에서 여기에 위치 검색 칸을 더한다
+        '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
+        '<div class="fd-field"><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+      '</div>';
+    }
+    html +=
+      '<div class="fd-field"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
         '<div class="fd-photos" id="fd-ed-photos"></div></div>' +
-      '<div class="fd-field"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
-        '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off"></div>' +
-      '<div class="fd-field"><label class="fd-label">종류</label><div class="fd-cat-pick" id="fd-ed-cat">' +
-        CATS.map(function(c){
-          return '<button type="button" class="fd-chip' + (d.category === c.name ? ' on' : '') + '" data-pick-cat="' + esc(c.name) + '">' + c.emoji + ' ' + esc(c.name) + '</button>';
-        }).join('') + '</div></div>' +
-      '<div class="fd-field fd-row">' +
-        '<div><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
-        '<div><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
-      '</div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
       '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
         '<span class="fd-rate-word">' + esc(RATE_WORDS[d.rating]) + '</span></div></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-one">한줄평</label>' +
@@ -990,11 +1197,14 @@
       '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점·한마디도 남길 수 있어요</small></label>' +
         '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
         '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">🥢 메뉴 추가</button></div>' +
-      '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div class="fd-toggle" id="fd-ed-revisit">' +
-        '<button type="button" data-revisit="yes"' + (d.revisit === 'yes' ? ' class="on"' : '') + '>😋 또 갈래요</button>' +
-        '<button type="button" data-revisit="no"' + (d.revisit === 'no' ? ' class="on"' : '') + '>🙂 한 번이면 충분</button></div></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모 <small>가격, 웨이팅, 같이 간 사람…</small></label>' +
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
+    // 또 갈래요는 새 방문을 쓸 때만. 옛 방문을 고칠 때 지금 마음이 덮이면 안 된다
+    if (mode !== 'edit') {
+      html += '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div id="fd-ed-revisit">' +
+        revisitToggleHTML(d.revisit, function(v){ return 'data-revisit="' + v + '"'; }) + '</div></div>';
+    }
+    return html;
   }
 
   // 입력 폼은 가게 필드와 방문 필드를 한 장의 draft로 다룬다
@@ -1025,25 +1235,58 @@
     touch(p, v);
     return normalizePlace(p);
   }
+  // 방문 하나를 저장한다.
+  //  placeId 없음      → 새 가게 + 새 방문 (draft의 가게 칸을 쓴다)
+  //  visitId 없음      → 그 가게에 새 방문. 가게 칸은 그대로, revisit만 draft 값이 된다
+  //  visitId 있음      → 그 방문 고치기. 가게 칸과 revisit은 지금 가게 값 그대로
+  // 성공하면 { place }, 아니면 { error }
+  function saveVisit(placeId, visitId, d){
+    var cur = placeId ? findPlace(placeId) : null;
+    if (placeId && !cur) return { error:'이미 지운 기록이에요' };
+    var visit = null;
+    if (visitId) {
+      visit = findVisit(cur, visitId);
+      if (!visit) return { error:'이미 지운 기록이에요' };
+    }
+    if (cur) {
+      d.name = cur.name; d.category = cur.category; d.area = cur.area;
+      if (visitId) d.revisit = cur.revisit;
+      if (!visitId && !draftHasVisit(d)) return { error:'방문 내용을 하나라도 적어 주세요' };
+    }
+    var place = applyDraft(cur, visit, d);
+    if (cur) { if (!replacePlace(cur, place)) return { error:'' }; }
+    else {
+      state.places.push(place);
+      if (!save()) { state.places.pop(); return { error:'' }; }
+    }
+    return { place:place };
+  }
 
-  function openEdit(id){
-    // 고치기는 그 가게와 화면에 보이는 (가장 최근) 방문 하나를 고친다
-    var src = id ? findPlace(id) : null;
-    var srcVisit = src ? latestVisit(src) : null;
-    var draft = draftFrom(src, srcVisit);
+  function openVisitForm(o){
+    var mode = o.mode;
+    var target = o.placeId ? findPlace(o.placeId) : null;
+    if (mode !== 'new' && !target) { toast('이미 지운 기록이에요'); return; }
+    var srcVisit = mode === 'edit' ? findVisit(target, o.visitId) : null;
+    if (mode === 'edit' && !srcVisit) { toast('이미 지운 기록이에요'); return; }
+    var draft = draftFrom(mode === 'new' ? null : target, srcVisit);
+    if (mode === 'add') draft.visitedAt = today();
     if (!draft.menus.length) draft.menus.push(newMenu());
     var startPhotos = draft.photos.slice();
     var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
     var busy = 0;
     var dirty = false;
+    var TITLES = { 'new':'새 맛집 기록', add:'또 다녀왔어요', edit:'방문 고치기' };
 
     var sheet = openSheet({
-      title: src ? '기록 고치기' : '새 맛집 기록',
+      title: TITLES[mode],
       leftLabel: '취소',
       right: '<button class="fd-text-btn strong" data-act="save">저장</button>',
-      body: editHTML(draft)
+      body: visitFormHTML(draft, mode, target)
     });
+    sheet.dataset.form = 'visit';
     var photosEl = $('#fd-ed-photos', sheet), menusEl = $('#fd-ed-menus', sheet);
+    var sameEl = $('#fd-ed-same', sheet);
+    var sameKey = '', dismissedKey = '';
 
     function drawPhotos(){
       photosEl.innerHTML = draft.photos.map(photoTileHTML).join('') +
@@ -1055,6 +1298,31 @@
       hydrateImgs(photosEl);
     }
     drawPhotos();
+
+    // 새 가게 이름에서 손을 떼면 같은 가게가 있는지 본다. 알림 칸만 바꾼다
+    function checkSame(){
+      if (mode !== 'new' || !sameEl) return;
+      var key = normName(draft.name);
+      if (key === sameKey) return;
+      var list = key && key !== dismissedKey ? samePlaceCandidates({ name:draft.name, location:null }) : [];
+      sameKey = list.length ? key : '';
+      sameEl.innerHTML = list.length ? sameNoticeHTML(list) : '';
+    }
+    // 같은 가게를 골랐을 때: 방문 칸은 그대로 두고 그 가게의 새 방문으로 바꾼다.
+    // 적어 둔 가게 칸은 쓰지 않고, 또 갈래요는 그 가게 값으로 다시 채운다
+    function switchToPlace(p){
+      target = p; mode = 'add';
+      sameKey = ''; sameEl.innerHTML = '';
+      draft.name = p.name; draft.category = p.category; draft.area = p.area;
+      draft.revisit = p.revisit;
+      $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === draft.revisit); });
+      $('#fd-ed-placebox', sheet).hidden = true;
+      $('#fd-ed-placename', sheet).textContent = p.name || '이름 없는 가게';
+      $('#fd-ed-placeemoji', sheet).textContent = catEmoji(p.category);
+      $('#fd-ed-placehead', sheet).hidden = false;
+      $('.fd-sheet-head h2', sheet).textContent = TITLES.add;
+      dirty = true;
+    }
 
     function menuOf(el){
       var box = el.closest('[data-mid]');
@@ -1082,6 +1350,9 @@
         if (m) m[t.dataset.mf] = t.value;
       }
     });
+    function onNameLeave(e){ if (e.target.dataset && e.target.dataset.f === 'name') checkSame(); }
+    sheet.addEventListener('focusout', onNameLeave);
+    sheet.addEventListener('change', onNameLeave);
     sheet.addEventListener('keydown', function(e){
       // 메뉴 이름에서 완료를 누르면 한마디 칸으로
       if (e.key === 'Enter' && e.target.dataset && e.target.dataset.mf === 'name') {
@@ -1121,6 +1392,12 @@
         $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === draft.revisit); });
         return;
       }
+      var pick = t.closest('[data-same-pick]');
+      if (pick) {
+        var p = findPlace(pick.dataset.samePick);
+        if (p) switchToPlace(p); else { sameKey = ''; checkSame(); }
+        return;
+      }
       var act = t.closest('[data-act]');
       if (!act) {
         var tile = t.closest('[data-photo]');
@@ -1133,6 +1410,9 @@
       switch (act.dataset.act) {
         case 'close': cancel(); break;
         case 'save': commit(); break;
+        case 'same-new':
+          dismissedKey = sameKey; sameKey = ''; sameEl.innerHTML = '';
+          break;
         case 'add-menu':
           dirty = true;
           var m2 = newMenu();
@@ -1164,7 +1444,7 @@
       input.onchange = function(){
         var files = Array.prototype.slice.call(input.files || []);
         var room = MAX_PHOTOS - draft.photos.length - busy;
-        if (files.length > room) toast('사진은 한 기록에 ' + MAX_PHOTOS + '장까지 넣을 수 있어요');
+        if (files.length > room) toast('사진은 한 방문에 ' + MAX_PHOTOS + '장까지 넣을 수 있어요');
         files = files.slice(0, Math.max(0, room));
         if (!files.length) return;
         dirty = true;
@@ -1188,41 +1468,158 @@
     }
 
     function cancel(){
-      if (dirty && !confirm(src ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 기록을 버릴까요?')) return;
+      if (dirty && !confirm(mode === 'edit' ? '고친 내용을 저장하지 않고 닫을까요?' : '작성 중인 기록을 버릴까요?')) return;
       photoDel(added);
       sheet.close();
     }
     function commit(){
       if (busy) { toast('사진을 넣는 중이에요. 잠시만요'); return; }
-      draft.name = draft.name.trim();
-      if (!draft.name) {
-        toast('가게 이름을 적어 주세요');
-        $('#fd-ed-name', sheet).focus();
+      if (mode === 'new') {
+        if (!draft.name.trim()) {
+          toast('가게 이름을 적어 주세요');
+          $('#fd-ed-name', sheet).focus();
+          return;
+        }
+        checkSame();
+        if (sameKey) {
+          toast('같은 가게인지 먼저 골라 주세요');
+          sameEl.scrollIntoView({ block:'center', behavior:'smooth' });
+          return;
+        }
+      }
+      // 저장할 값은 사본으로 만든다. 저장이 안 되면 폼과 draft는 그대로 남는다
+      var out = clone(draft);
+      out.name = out.name.trim();
+      out.area = out.area.trim();
+      if (mode === 'edit') {
+        // 옛 방문 고치기: 손대지 않은 값은 저장된 그대로 둔다. 바꾼 칸만 공백을 정리한다
+        if (out.oneLiner !== srcVisit.oneLiner) out.oneLiner = out.oneLiner.trim();
+        if (out.memo !== srcVisit.memo) out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus.map(function(m){
+          var orig = null;
+          srcVisit.menus.forEach(function(o){ if (o.id === m.id) orig = o; });
+          if (!orig) {   // 이번에 넣은 줄
+            m.name = m.name.trim(); m.note = m.note.trim();
+            return (m.name || m.note || m.rating) ? m : null;
+          }
+          // 원래 있던 줄: 바뀌지 않은 칸은 저장된 값, 비어 보여도 지우지 않는다 (빼기 버튼으로만 빠진다)
+          var r = clone(orig);
+          if (m.name !== orig.name) r.name = m.name.trim();
+          if (m.note !== orig.note) r.note = m.note.trim();
+          r.rating = m.rating;
+          return r;
+        }).filter(Boolean);
+      } else {
+        out.oneLiner = out.oneLiner.trim();
+        out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus
+          .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
+          .filter(function(m){ return m.name || m.note || m.rating; });
+      }
+      var res = saveVisit(target ? target.id : null, srcVisit ? srcVisit.id : null, out);
+      if (!res.place) {
+        if (res.error) toast(res.error);
+        if (res.error === '이미 지운 기록이에요') { photoDel(added); sheet.close(); }
         return;
       }
-      draft.area = draft.area.trim();
-      draft.oneLiner = draft.oneLiner.trim();
-      draft.memo = draft.memo.replace(/\s+$/, '');
-      draft.menus = draft.menus
-        .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
-        .filter(function(m){ return m.name || m.note || m.rating; });
-      var cur = src ? findPlace(src.id) : null;
-      if (src && !cur) { toast('이미 지운 기록이에요'); photoDel(added); sheet.close(); return; }
-      var place = applyDraft(cur, srcVisit, draft);
-      var before = state.places.slice();
-      if (cur) state.places[state.places.indexOf(cur)] = place;
-      else state.places.push(place);
-      if (!save()) { state.places = before; return; }
       // 빠진 사진은 저장이 끝난 뒤에, 어느 방문에서도 쓰지 않을 때만 지운다
       photoDel(startPhotos.concat(added).filter(function(x){ return !photoInUse(x); }));
       render();
       sheet.close();
-      var detail = $('.fd-sheet[data-detail="' + place.id + '"]');
-      if (detail) fillDetail(detail, place);
-      toast(cur ? '고쳤어요 ✨' : '맛집을 기록했어요 🍽️');
+      refreshDetail(res.place.id);
+      toast(mode === 'edit' ? '고쳤어요 ✨' : mode === 'add' ? '방문을 더했어요 🍽️' : '맛집을 기록했어요 🍽️');
     }
 
-    if (!src) setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
+    if (mode === 'new') setTimeout(function(){ if (!sheet.closed && !draft.name) $('#fd-ed-name', sheet).focus(); }, 320);
+  }
+
+  // ---------- 가게 정보 고치기 ----------
+  function linkEditHTML(l){
+    return '<div class="fd-link-edit fd-row"><input class="fd-input" data-link value="' + esc(l) + '" placeholder="https://…" maxlength="500" autocomplete="off" inputmode="url" autocapitalize="off">' +
+      '<button type="button" class="fd-menu-del" data-act="del-link" aria-label="링크 빼기">✕</button></div>';
+  }
+  function placeFormHTML(d){
+    return '' +
+      '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-pf-name">가게 이름</label>' +
+        '<input class="fd-input big" id="fd-pf-name" data-pf="name" value="' + esc(d.name) + '" placeholder="가게 이름" maxlength="40" autocomplete="off"></div>' +
+      '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-pf-area">지역</label><input class="fd-input" id="fd-pf-area" data-pf="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
+      // 위치 자리: 위치 작업에서 여기에 위치 붙이기·바꾸기·떼기를 더한다
+      '<div id="fd-pf-location"></div>' +
+      '<div class="fd-field"><label class="fd-label">링크 <small>http로 시작하면 눌러서 열 수 있어요</small></label>' +
+        '<div class="fd-link-edits" id="fd-pf-links">' + d.links.map(linkEditHTML).join('') + '</div>' +
+        '<button type="button" class="fd-add-line fd-press" data-act="add-link" style="margin-top:8px">🔗 링크 추가</button></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-pf-memo">가게 메모</label>' +
+        '<textarea class="fd-textarea" id="fd-pf-memo" data-pf="memo" maxlength="1000" placeholder="주차, 영업시간, 추천 메뉴…">' + esc(d.memo) + '</textarea></div>';
+    // 또 갈래요는 여기서 고치지 않는다. 가게 화면의 바꾸기와 새 방문 폼에서만 바뀐다
+  }
+  function openPlaceForm(id){
+    var src = findPlace(id);
+    if (!src) return;
+    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo };
+    var dirty = false;
+    var sheet = openSheet({
+      title:'가게 정보 고치기', leftLabel:'취소',
+      right:'<button class="fd-text-btn strong" data-act="save">저장</button>',
+      body:placeFormHTML(d)
+    });
+    sheet.dataset.form = 'place';
+    var linksEl = $('#fd-pf-links', sheet);
+    sheet.addEventListener('input', function(e){
+      dirty = true;
+      if (e.target.dataset.pf) d[e.target.dataset.pf] = e.target.value;
+    });
+    sheet.addEventListener('click', function(e){
+      var t = e.target;
+      var cat = t.closest('[data-pick-cat]');
+      if (cat) {
+        dirty = true;
+        d.category = d.category === cat.dataset.pickCat ? '' : cat.dataset.pickCat;
+        $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === d.category); });
+        return;
+      }
+      var act = t.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'close') {
+        if (dirty && !confirm('고친 내용을 저장하지 않고 닫을까요?')) return;
+        sheet.close();
+      } else if (act.dataset.act === 'add-link') {
+        dirty = true;
+        linksEl.insertAdjacentHTML('beforeend', linkEditHTML(''));
+        linksEl.lastElementChild.querySelector('input').focus();
+      } else if (act.dataset.act === 'del-link') {
+        dirty = true;
+        act.closest('.fd-link-edit').remove();
+      } else if (act.dataset.act === 'save') {
+        save1();
+      }
+    });
+    function save1(){
+      var cur = findPlace(id);
+      if (!cur) { toast('이미 지운 기록이에요'); sheet.close(); return; }
+      // 손대지 않은 값은 그대로 둔다. 바꾼 칸만 앞뒤 공백을 정리한다
+      var name = d.name === cur.name ? cur.name : d.name.trim();
+      if (!name.trim()) { toast('가게 이름을 적어 주세요'); $('#fd-pf-name', sheet).focus(); return; }
+      var links = [];
+      $all('[data-link]', linksEl).forEach(function(inp){
+        var v = inp.value;
+        if (cur.links.indexOf(v) !== -1) links.push(v);
+        else if (v.trim()) links.push(v.trim());
+      });
+      var next = clone(cur);
+      next.name = name;
+      next.category = d.category;
+      next.area = d.area === cur.area ? cur.area : d.area.trim();
+      next.links = links;
+      next.memo = d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
+      touch(next, null);
+      next = normalizePlace(next);
+      if (!replacePlace(cur, next)) return;
+      render();
+      sheet.close();
+      refreshDetail(id);
+      toast('가게 정보를 고쳤어요 ✨');
+    }
   }
 
   // ---------- 백업 ----------
@@ -1356,15 +1753,27 @@
 
   // ---------- 알림 ----------
   var toastTimer = null;
+  // 되돌리기를 기다리는 동안 보인 되돌리기 알림. 다른 알림이 떠도 되돌리기 버튼은 남긴다
+  var undoToast = null;   // { pd, label, fn, until }
+  function showUndo(pd, msg, fn){
+    toast(msg, '되돌리기', fn, 7000);
+    undoToast = { pd:pd, label:'되돌리기', fn:fn, until:Date.now() + 7000 };
+  }
   function toast(msg, actionLabel, onAction, ms){
     var el = $('#fd-toast'), btn = $('button', el);
+    ms = ms || 2200;
+    if (actionLabel) undoToast = null;
+    else if (undoToast && pendingDelete === undoToast.pd && Date.now() < undoToast.until) {
+      actionLabel = undoToast.label; onAction = undoToast.fn;
+      ms = Math.max(ms, undoToast.until - Date.now());
+    }
     $('span', el).textContent = msg;
     btn.hidden = !actionLabel;
     btn.textContent = actionLabel || '';
     btn.onclick = function(){ el.classList.remove('show'); if (onAction) onAction(); };
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, ms || 2200);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, ms);
   }
 
   // ---------- 이벤트 ----------
@@ -1395,7 +1804,7 @@
     var c = e.target.closest('[data-open]');
     if (c) openDetail(c.dataset.open);
   });
-  $('#fd-add').addEventListener('click', function(){ openEdit(null); });
+  $('#fd-add').addEventListener('click', function(){ openVisitForm({ mode:'new' }); });
   $('#fd-menu-btn').addEventListener('click', openMenu);
   window.addEventListener('pagehide', finishPendingDelete);
 
