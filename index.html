@@ -64,10 +64,9 @@
     max-width:560px; margin:0 auto;
     padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px);
   }
-  .fd-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .fd-head h1{ margin:0; font-size:26px; letter-spacing:-.5px; font-weight:800; }
+  .fd-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 
-  .fd-sub{ margin:2px 0 0; color:var(--muted); font-size:13.5px; }
+  .fd-sub{ margin:0; color:var(--muted); font-size:13.5px; }
   .fd-icon-btn{
     width:40px; height:40px; border-radius:50%; background:var(--surface);
     box-shadow:var(--shadow); display:grid; place-items:center; flex:none;
@@ -406,7 +405,6 @@
 <div class="fd-app">
   <header class="fd-head">
     <div>
-      <h1>윤지의 먹보일기</h1>
       <p class="fd-sub" id="fd-stats"></p>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
@@ -414,8 +412,8 @@
     </button>
   </header>
   <div class="fd-side" id="fd-side" role="tablist">
-    <button type="button" data-side="places" role="tab">🍽️ 다녀온 곳</button>
-    <button type="button" data-side="wishes" role="tab">💭 가고 싶은 곳</button>
+    <button type="button" data-side="places" role="tab">다녀온 곳</button>
+    <button type="button" data-side="wishes" role="tab">가고 싶은 곳</button>
   </div>
   <label class="fd-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -950,7 +948,7 @@
     $('#fd-sort').style.visibility = state.places.length ? '' : 'hidden';
     $all('#fd-sort button').forEach(function(b){ b.classList.toggle('on', b.dataset.sort === ui.sort); });
     if (!state.places.length) {
-      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🍜🍙🍰</div><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
+      el.innerHTML = '<div class="fd-empty"><h2>아직 기록한 맛집이 없어요</h2><p>아래 버튼을 눌러 첫 맛집을 남겨 보세요</p></div>';
     } else if (!list.length) {
       el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 맛집이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
     } else {
@@ -963,7 +961,7 @@
     $('#fd-count').textContent = state.wishes.length ? list.length + '곳' : '';
     $('#fd-sort').style.visibility = 'hidden';   // 가고 싶은 곳은 넣은 순서 하나뿐
     if (!state.wishes.length) {
-      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">💭🍜✨</div><h2>아직 가고 싶은 곳이 없어요</h2><p>아래 버튼을 눌러 가 보고 싶은 곳을 넣어 두세요</p></div>';
+      el.innerHTML = '<div class="fd-empty"><h2>아직 가고 싶은 곳이 없어요</h2><p>아래 버튼을 눌러 가 보고 싶은 곳을 넣어 두세요</p></div>';
     } else if (!list.length) {
       el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 곳이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
     } else {
