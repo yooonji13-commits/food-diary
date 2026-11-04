@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>맛집 기록서</title>
+<title>먹보일기</title>
 <meta name="description" content="사진, 먹은 메뉴, 한줄평, 별점으로 남기는 나만의 맛집 기록">
 <meta name="theme-color" content="#FFFBF2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="맛집 기록서">
+<meta name="apple-mobile-web-app-title" content="먹보일기">
 <meta name="format-detection" content="telephone=no">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -274,15 +274,8 @@
   .fd-gallery-track button{ flex:none; width:100%; aspect-ratio:4/3; scroll-snap-align:center; background:var(--surface-alt); }
   .fd-gallery-track img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fd-gallery-count{ position:absolute; right:26px; bottom:12px; font-size:12px; font-weight:600; color:#fff; background:rgba(59,46,37,.5); border-radius:var(--radius-pill); padding:2px 10px; pointer-events:none; }
-  .fd-detail-hero-empty{ margin:4px 0 0; height:130px; border-radius:var(--radius-lg); background:var(--surface-alt); display:grid; place-items:center; font-size:58px; }
   .fd-detail-title{ margin:18px 0 0; font-size:24px; font-weight:800; letter-spacing:-.4px; word-break:keep-all; }
   .fd-detail-meta{ color:var(--muted); font-size:14px; margin-top:4px; }
-  .fd-detail-rate{ display:flex; align-items:center; gap:8px; margin-top:10px; }
-  .fd-quote-box{
-    margin-top:16px; background:var(--surface); border-radius:var(--radius-lg); padding:16px 18px; box-shadow:var(--shadow);
-    font-size:17px; font-weight:600; line-height:1.5; word-break:keep-all; position:relative;
-  }
-  .fd-quote-box::before{ content:"“"; position:absolute; left:12px; top:-8px; font-size:44px; color:var(--accent); opacity:.3; font-family:Georgia,serif; }
   .fd-section-title{ font-size:14px; font-weight:700; color:var(--ink-soft); margin:24px 2px 8px; }
   .fd-menu-list{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); overflow:hidden; }
   .fd-menu-item{ padding:13px 16px; }
@@ -294,7 +287,6 @@
   .fd-detail-actions{ display:flex; gap:8px; margin-top:28px; }
   .fd-detail-actions button{ flex:1; height:52px; border-radius:var(--radius-pill); font-weight:700; }
   .fd-btn-primary{ background:var(--accent); color:var(--accent-ink); }
-  .fd-btn-ghost{ background:var(--surface); border:1px solid var(--line); color:var(--danger); }
 
   /* ---- photo viewer ---- */
   .fd-viewer{ position:fixed; inset:0; z-index:40; background:#000; animation:fd-fade-in .18s ease; }
@@ -381,10 +373,6 @@
   .fd-want-chips{ display:flex; gap:6px; flex-wrap:wrap; }
   .fd-want-chips .fd-menu-chip{ font-size:13.5px; padding:6px 12px; background:var(--surface); box-shadow:var(--shadow); }
   .fd-detail-addr{ font-size:13px; color:var(--muted); margin-top:2px; word-break:keep-all; }
-  .fd-same-list{ list-style:none; margin:0; padding:0; }
-  .fd-same-row{ display:flex; gap:8px; }
-  .fd-same-row .fd-same-new{ flex:1; min-width:0; }
-  .fd-same-new.strong{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:700; }
 
   /* ---- 위치 고르기 (카카오) ---- */
   .fd-loc-bar{ display:flex; gap:8px; }
@@ -612,16 +600,22 @@
       localStorage.setItem(name, raw);
     } catch (e) {}
   }
-  function readJSON(key){
+  function readJSON(key, keepCopy){
     var raw = null;
     try { raw = localStorage.getItem(key); } catch (e) { return { ok:false, missing:true }; }
     if (raw === null) return { ok:false, missing:true };
-    try { return { ok:true, data:JSON.parse(raw) }; }
-    catch (e) { keepUnreadable(key, raw); return { ok:false, missing:false }; }
+    try { return { ok:true, data:JSON.parse(raw), raw:raw }; }
+    catch (e) { if (keepCopy) keepUnreadable(key, raw); return { ok:false, missing:false }; }
   }
   function load(){
-    var v2 = readJSON(KEY);
-    if (v2.ok) return normalizeState(v2.data);
+    var v2 = readJSON(KEY, true);
+    if (v2.ok) {
+      // JSON이지만 모양이 다르면(배열이 아닌 places 등) 다음 저장이 원문을 덮기 전에 사본을 남긴다
+      var d = v2.data;
+      if (!d || typeof d !== 'object' || Array.isArray(d) ||
+          (d.places != null && !Array.isArray(d.places)) || (d.wishes != null && !Array.isArray(d.wishes))) keepUnreadable(KEY, v2.raw);
+      return normalizeState(d);
+    }
     if (!v2.missing) return normalizeState(null);
     // 2판이 아직 없으면 1판을 옮긴다. fd_data_v1은 읽기만 한다
     var v1 = readJSON(KEY_V1);
@@ -1853,7 +1847,6 @@
       right: '<button class="fd-text-btn strong" data-act="save">저장</button>',
       body: visitFormHTML(draft, mode, target)
     });
-    sheet.dataset.form = 'visit';
     var photosEl = $('#fd-ed-photos', sheet), menusEl = $('#fd-ed-menus', sheet);
     var sameEl = $('#fd-ed-same', sheet);
     var sameKey = '', dismissedKey = '';
@@ -2203,7 +2196,6 @@
       right:'<button class="fd-text-btn strong" data-act="save">저장</button>',
       body:placeFormHTML(d)
     });
-    sheet.dataset.form = 'place';
     var linksEl = $('#fd-pf-links', sheet);
     // 위치 붙이기·바꾸기·떼기. 이름은 비어 있을 때만, 종류는 고르지 않았을 때만 채운다
     mountLocPicker($('#fd-pf-location [data-loc-root]', sheet), {
@@ -2390,7 +2382,6 @@
       right:'<button class="fd-text-btn strong" data-act="save">저장</button>',
       body:wishFormHTML(d)
     });
-    sheet.dataset.form = 'wish';
     var wantsEl = $('#fd-wf-wants', sheet), sameEl = $('#fd-wf-same', sheet);
     mountLocPicker($('#fd-wf-location [data-loc-root]', sheet), {
       get: function(){ return d.location; },
@@ -2529,8 +2520,8 @@
       var json = JSON.stringify({ app:'food-diary', version:2, exportedAt:new Date().toISOString(), places:state.places, wishes:state.wishes, photos:photos });
       var name = '맛집기록서-' + today() + '.json';
       var file = new File([json], name, { type:'application/json' });
-      var touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
-      if (touch && navigator.canShare && navigator.canShare({ files:[file] })) {
+      var coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+      if (coarse && navigator.canShare && navigator.canShare({ files:[file] })) {
         return navigator.share({ files:[file] }).then(function(){ toast('백업 파일을 보냈어요'); }, function(err){
           if (err && err.name !== 'AbortError') download(file, name);
         });
@@ -2558,8 +2549,9 @@
     return null;
   }
   // 사진은 지금 기기에 없는 것만 넣는다. 합친 결과의 방문이 쓰는 사진만 본다
+  function isImageData(s){ return typeof s === 'string' && s.indexOf('data:image/') === 0; }
   function missingPhotos(places, photos){
-    var ids = allPhotoIds(places).filter(function(id){ return photos[id] && photos[id].full; });
+    var ids = allPhotoIds(places).filter(function(id){ return photos[id] && isImageData(photos[id].full); });
     var need = [];
     return ids.reduce(function(chain, id){
       return chain.then(function(){
@@ -2601,7 +2593,7 @@
           return need.reduce(function(chain, id){
             return chain.then(function(){
               var ph = inc.photos[id];
-              return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(ph.thumb || ph.full).then(function(r){ return r.blob(); })])
+              return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(isImageData(ph.thumb) ? ph.thumb : ph.full).then(function(r){ return r.blob(); })])
                 .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); })
                 .catch(function(){});
             });

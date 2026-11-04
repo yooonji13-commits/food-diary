@@ -42,7 +42,7 @@ node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');con
 ## 확인용 데이터 넣기
 
 1. `http://localhost:4175/__seed`로 간다(404 페이지라 앱 코드가 돌지 않는다).
-2. 거기서 `localStorage.fd_data_v2`(또는 1판을 시험할 때 `fd_data_v1`)에 JSON을 넣고, 사진이 필요하면 IndexedDB `fd_photos`에 넣는다. 형식은 contracts.md.
+2. 거기서 `localStorage.fd_data_v2`(또는 1판을 시험할 때 `fd_data_v1`)에 JSON을 넣고, 사진이 필요하면 IndexedDB `fd_photos`(store `photos`, keyPath `id`)에 `{id, full: Blob, thumb: Blob}`을 넣은 뒤 그 id를 방문의 `photos`에 적는다.
 3. `/index.html`로 이동한다.
 4. 데이터가 실제로 들어갔는지 먼저 읽어 본다.
 
