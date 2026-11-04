@@ -332,7 +332,8 @@
 (function(){
   'use strict';
 
-  var KEY = 'fd_data_v1';
+  var KEY = 'fd_data_v2';
+  var KEY_V1 = 'fd_data_v1';   // 1판 기록. 읽기만 하고 절대 쓰거나 지우지 않는다
   var MAX_PHOTOS = 10;
   var CATS = [
     { name:'한식', emoji:'🍚' }, { name:'일식', emoji:'🍣' }, { name:'중식', emoji:'🥟' },
@@ -369,58 +370,226 @@
   function cmp(a, b){ return a < b ? -1 : a > b ? 1 : 0; }
 
   // ---------- 저장 (기록은 localStorage, 사진은 IndexedDB) ----------
+  // 2판 모양: { version:2, places:[{ ...가게, visits:[방문] }], wishes:[] }
+  // 모르는 필드는 그대로 두고, 깨진 값만 안전한 값으로 바꾼다. 줄은 버리지 않는다.
+  function str(v){ return typeof v === 'string' ? v : ''; }
+  function strList(a){ return Array.isArray(a) ? a.filter(function(x){ return typeof x === 'string' && x; }) : []; }
   function normalizeMenu(m){
     m = (m && typeof m === 'object') ? m : {};
     return Object.assign({}, m, {
       id: typeof m.id === 'string' && m.id ? m.id : uid(),
-      name: typeof m.name === 'string' ? m.name : '',
+      name: str(m.name),
       rating: clampRating(m.rating),
-      note: typeof m.note === 'string' ? m.note : ''
+      note: str(m.note)
     });
   }
+  function normalizeLocation(l){
+    if (!l || typeof l !== 'object' || Array.isArray(l)) return null;
+    var lat = Number(l.lat), lng = Number(l.lng);
+    return Object.assign({}, l, {
+      kakaoId: l.kakaoId == null ? '' : String(l.kakaoId),
+      placeName: str(l.placeName),
+      address: str(l.address),
+      // 숫자로 읽을 수 없는 좌표는 null로 둔다 (지도에 0,0으로 찍히지 않게)
+      lat: isFinite(lat) && l.lat !== null && l.lat !== '' ? lat : null,
+      lng: isFinite(lng) && l.lng !== null && l.lng !== '' ? lng : null
+    });
+  }
+  function normalizeVisit(v){
+    v = (v && typeof v === 'object') ? v : {};
+    return Object.assign({}, v, {
+      id: typeof v.id === 'string' && v.id ? v.id : uid(),
+      visitedAt: isDate(v.visitedAt) ? v.visitedAt : '',
+      rating: clampRating(v.rating),
+      oneLiner: str(v.oneLiner),
+      menus: Array.isArray(v.menus) ? v.menus.map(normalizeMenu) : [],
+      photos: strList(v.photos),
+      memo: str(v.memo),
+      createdAt: str(v.createdAt),
+      updatedAt: str(v.updatedAt)
+    });
+  }
+  // 방문이 0개인 가게도 그대로 둔다. 가짜 방문을 만들지 않는다
   function normalizePlace(p){
     p = (p && typeof p === 'object') ? p : {};
     return Object.assign({}, p, {
       id: typeof p.id === 'string' && p.id ? p.id : uid(),
-      name: typeof p.name === 'string' ? p.name : '',
-      category: typeof p.category === 'string' ? p.category : '',
-      area: typeof p.area === 'string' ? p.area : '',
-      visitedAt: isDate(p.visitedAt) ? p.visitedAt : '',
-      rating: clampRating(p.rating),
-      oneLiner: typeof p.oneLiner === 'string' ? p.oneLiner : '',
-      menus: Array.isArray(p.menus) ? p.menus.map(normalizeMenu) : [],
-      photos: Array.isArray(p.photos) ? p.photos.filter(function(x){ return typeof x === 'string' && x; }) : [],
+      name: str(p.name),
+      category: str(p.category),
+      area: str(p.area),
+      location: normalizeLocation(p.location),
       revisit: p.revisit === 'yes' || p.revisit === 'no' ? p.revisit : '',
-      memo: typeof p.memo === 'string' ? p.memo : '',
-      createdAt: typeof p.createdAt === 'string' ? p.createdAt : '',
-      updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : ''
+      links: strList(p.links),
+      memo: str(p.memo),
+      fromWishIds: strList(p.fromWishIds),
+      visits: Array.isArray(p.visits) ? p.visits.map(normalizeVisit) : [],
+      createdAt: str(p.createdAt),
+      updatedAt: str(p.updatedAt)
+    });
+  }
+  function normalizeWish(w){
+    w = (w && typeof w === 'object') ? w : {};
+    return Object.assign({}, w, {
+      id: typeof w.id === 'string' && w.id ? w.id : uid(),
+      name: str(w.name),
+      category: str(w.category),
+      area: str(w.area),
+      location: normalizeLocation(w.location),
+      link: str(w.link),
+      wantMenus: strList(w.wantMenus),
+      memo: str(w.memo),
+      createdAt: str(w.createdAt),
+      updatedAt: str(w.updatedAt)
     });
   }
   function normalizeState(s){
     s = (s && typeof s === 'object') ? s : {};
     return Object.assign({}, s, {
-      version: 1,
-      places: Array.isArray(s.places) ? s.places.map(normalizePlace) : []
+      version: 2,
+      places: Array.isArray(s.places) ? s.places.map(normalizePlace) : [],
+      wishes: Array.isArray(s.wishes) ? s.wishes.map(normalizeWish) : []
     });
   }
-  function load(){
+
+  // 1판 기록 하나 → 가게 하나 + 방문 하나. id는 항상 같은 값으로 정한다
+  // (가게 id = 1판 id, 방문 id = 1판 id + '_v1') — 같은 1판 백업을 여러 번 불러와도 방문이 늘지 않는다
+  var V1_VISIT_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
+  function placeFromV1(r){
+    r = (r && typeof r === 'object') ? r : {};
+    var id = typeof r.id === 'string' && r.id ? r.id : uid();
+    var place = {};
+    // 1판에서 모르는 필드는 가게 쪽에 그대로 옮겨 둔다
+    Object.keys(r).forEach(function(k){ if (V1_VISIT_FIELDS.indexOf(k) === -1) place[k] = r[k]; });
+    Object.assign(place, {
+      id: id, name: r.name, category: r.category, area: r.area, revisit: r.revisit,
+      location: null, links: [], memo: '', fromWishIds: [],
+      createdAt: r.createdAt, updatedAt: r.updatedAt,
+      visits: [{
+        id: id + '_v1', visitedAt: r.visitedAt, rating: r.rating, oneLiner: r.oneLiner,
+        menus: r.menus, photos: r.photos, memo: r.memo, createdAt: r.createdAt, updatedAt: r.updatedAt
+      }]
+    });
+    return normalizePlace(place);
+  }
+  function placesFromV1(list){ return Array.isArray(list) ? list.map(placeFromV1) : []; }
+
+  // 읽지 못한 원문은 지우지 않고 옆 키에 남겨 둔다. 같은 원문이 이미 남아 있으면 또 만들지 않는다
+  function keepUnreadable(key, raw){
+    try {
+      var k = key + '_unreadable', n = 0, name;
+      while ((name = n ? k + '_' + n : k), localStorage.getItem(name) !== null) {
+        if (localStorage.getItem(name) === raw) return;
+        n++;
+      }
+      localStorage.setItem(name, raw);
+    } catch (e) {}
+  }
+  function readJSON(key){
     var raw = null;
-    try { raw = localStorage.getItem(KEY); } catch (e) { return normalizeState(null); }
-    if (!raw) return normalizeState(null);
-    try { return normalizeState(JSON.parse(raw)); }
-    catch (e) {
-      // 읽지 못한 원문은 지우지 않고 옆에 남겨 둔다
-      try {
-        var k = KEY + '_unreadable', n = 0;
-        while (localStorage.getItem(n ? k + '_' + n : k) !== null) n++;
-        localStorage.setItem(n ? k + '_' + n : k, raw);
-      } catch (e2) {}
-      return normalizeState(null);
-    }
+    try { raw = localStorage.getItem(key); } catch (e) { return { ok:false, missing:true }; }
+    if (raw === null) return { ok:false, missing:true };
+    try { return { ok:true, data:JSON.parse(raw) }; }
+    catch (e) { keepUnreadable(key, raw); return { ok:false, missing:false }; }
+  }
+  function load(){
+    var v2 = readJSON(KEY);
+    if (v2.ok) return normalizeState(v2.data);
+    if (!v2.missing) return normalizeState(null);
+    // 2판이 아직 없으면 1판을 옮긴다. fd_data_v1은 읽기만 한다
+    var v1 = readJSON(KEY_V1);
+    if (!v1.ok) return normalizeState(null);
+    var s = normalizeState({ places: placesFromV1(v1.data && v1.data.places) });
+    writeState(s);
+    return s;
+  }
+  function writeState(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); return true; }
+    catch (e) { return false; }
   }
   function save(){
-    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
-    catch (e) { toast('저장하지 못했어요. 저장 공간을 확인해 주세요'); return false; }
+    if (writeState(state)) return true;
+    toast('저장하지 못했어요. 저장 공간을 확인해 주세요');
+    return false;
+  }
+
+  // ---------- 가게·방문 도우미 ----------
+  // 방문 순서: 방문한 날 늦은 순, 같으면 만든 때 늦은 순 (문자열 비교, 뺄셈 금지)
+  function cmpVisitDesc(a, b){ return cmp(b.visitedAt, a.visitedAt) || cmp(b.createdAt, a.createdAt); }
+  function sortedVisits(p){ return p.visits.slice().sort(cmpVisitDesc); }
+  function latestVisit(p){ return p.visits.length ? sortedVisits(p)[0] : null; }
+  function findVisit(p, vid){
+    for (var i = 0; i < p.visits.length; i++) if (p.visits[i].id === vid) return p.visits[i];
+    return null;
+  }
+  function placePhotos(p){
+    var ids = [];
+    p.visits.forEach(function(v){ v.photos.forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    return ids;
+  }
+  function allPhotoIds(places){
+    var ids = [];
+    places.forEach(function(p){ placePhotos(p).forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    return ids;
+  }
+  function photoInUse(pid){
+    return state.places.some(function(p){ return p.visits.some(function(v){ return v.photos.indexOf(pid) !== -1; }); });
+  }
+  // 방문 하나를 바꾸면 그 방문과 가게의 updatedAt을 함께 올린다
+  function touch(place, visit){
+    var now = new Date().toISOString();
+    if (visit) { visit.updatedAt = now; if (!visit.createdAt) visit.createdAt = now; }
+    place.updatedAt = now;
+    if (!place.createdAt) place.createdAt = now;
+    return now;
+  }
+  function laterOf(a, b){ return cmp(a, b) >= 0 ? a : b; }
+  function union(a, b){
+    var out = a.slice();
+    b.forEach(function(x){ if (out.indexOf(x) === -1) out.push(x); });
+    return out;
+  }
+
+  // 백업 합치기. 지금 있는 것은 지우지 않는다. 결과와 개수만 돌려주고 state는 건드리지 않는다
+  function mergeData(cur, inc){
+    var c = { newPlaces:0, newVisits:0, newWishes:0, newer:0 };
+    var places = cur.places.map(clone);
+    inc.places.forEach(function(ip){
+      var idx = -1;
+      places.forEach(function(p, i){ if (p.id === ip.id) idx = i; });
+      if (idx === -1) {
+        places.push(clone(ip));
+        c.newPlaces++; c.newVisits += ip.visits.length;
+        return;
+      }
+      var lp = places[idx];
+      var incLater = cmp(ip.updatedAt, lp.updatedAt) > 0;
+      if (incLater) c.newer++;
+      var visits = lp.visits.slice();
+      ip.visits.forEach(function(iv){
+        var j = -1;
+        visits.forEach(function(v, k){ if (v.id === iv.id) j = k; });
+        if (j === -1) { visits.push(clone(iv)); c.newVisits++; }
+        else if (cmp(iv.updatedAt, visits[j].updatedAt) > 0) { visits[j] = clone(iv); c.newer++; }
+      });
+      var base = incLater ? clone(ip) : lp;
+      base.links = union(lp.links, ip.links);
+      base.fromWishIds = union(lp.fromWishIds, ip.fromWishIds);
+      base.visits = visits;
+      base.updatedAt = laterOf(lp.updatedAt, ip.updatedAt);
+      places[idx] = base;
+    });
+    // 가고 싶은 곳은 가게를 다 합친 뒤에. 이미 가게가 된 곳은 되살리지 않는다
+    var done = [];
+    places.forEach(function(p){ done = union(done, p.fromWishIds); });
+    var wishes = cur.wishes.map(clone);
+    inc.wishes.forEach(function(iw){
+      if (done.indexOf(iw.id) !== -1) return;
+      var idx = -1;
+      wishes.forEach(function(w, i){ if (w.id === iw.id) idx = i; });
+      if (idx === -1) { wishes.push(clone(iw)); c.newWishes++; }
+      else if (cmp(iw.updatedAt, wishes[idx].updatedAt) > 0) { wishes[idx] = clone(iw); c.newer++; }
+    });
+    return { places:places, wishes:wishes, counts:c };
   }
 
   var dbPromise = null;
@@ -512,7 +681,6 @@
   // ---------- 상태 ----------
   var state = load();
   var ui = { q:'', cat:'', sort:'recent' };
-  save();
 
   function findPlace(id){
     for (var i = 0; i < state.places.length; i++) if (state.places[i].id === id) return state.places[i];
@@ -525,31 +693,39 @@
     for (var i = 1; i <= 5; i++) s += '<span' + (i <= v ? ' class="on"' : '') + '>★</span>';
     return '<span class="fd-stars-ro ' + (cls || '') + '" aria-label="별점 ' + v + '점">' + s + '</span>';
   }
+  // 방문이 없는 가게도 같은 모양으로 그리도록 빈 방문을 쓴다 (저장하지 않는 화면용 값)
+  var NO_VISIT = { id:'', visitedAt:'', rating:0, oneLiner:'', menus:[], photos:[], memo:'', createdAt:'', updatedAt:'' };
+  function shownVisit(p){ return latestVisit(p) || NO_VISIT; }
   function matches(p, q){
     if (!q) return true;
-    var hay = [p.name, p.area, p.category, p.oneLiner, p.memo]
-      .concat(p.menus.map(function(m){ return m.name + ' ' + m.note; })).join(' ').toLowerCase();
+    var hay = [p.name, p.area, p.category, p.memo];
+    p.visits.forEach(function(v){
+      hay.push(v.oneLiner, v.memo);
+      v.menus.forEach(function(m){ hay.push(m.name + ' ' + m.note); });
+    });
+    hay = hay.join(' ').toLowerCase();
     return q.toLowerCase().split(/\s+/).every(function(w){ return !w || hay.indexOf(w) !== -1; });
   }
   function visible(){
     var list = state.places.filter(function(p){
       return (!ui.cat || p.category === ui.cat) && matches(p, ui.q);
-    });
+    }).map(function(p){ return { p:p, v:shownVisit(p) }; });
     list.sort(function(a, b){
       if (ui.sort === 'rating') {
-        var r = cmp(b.rating, a.rating);
+        var r = cmp(b.v.rating, a.v.rating);
         if (r) return r;
       }
-      return cmp(b.visitedAt, a.visitedAt) || cmp(b.createdAt, a.createdAt);
+      return cmp(b.v.visitedAt, a.v.visitedAt) || cmp(b.v.createdAt || b.p.createdAt, a.v.createdAt || a.p.createdAt);
     });
-    return list;
+    return list.map(function(x){ return x.p; });
   }
   function cardHTML(p, i){
-    var thumb = p.photos.length
-      ? '<img data-pid="' + esc(p.photos[0]) + '" alt="">' + (p.photos.length > 1 ? '<span class="fd-thumb-count">' + p.photos.length + '</span>' : '')
+    var v = shownVisit(p);
+    var thumb = v.photos.length
+      ? '<img data-pid="' + esc(v.photos[0]) + '" alt="">' + (v.photos.length > 1 ? '<span class="fd-thumb-count">' + v.photos.length + '</span>' : '')
       : catEmoji(p.category);
-    var meta = [p.area, p.category, fmtDate(p.visitedAt)].filter(Boolean).map(esc).join(' · ');
-    var menus = p.menus.filter(function(m){ return m.name; }).slice(0, 4).map(function(m){
+    var meta = [p.area, p.category, p.visits.length ? fmtDate(v.visitedAt) : '방문 기록 없음'].filter(Boolean).map(esc).join(' · ');
+    var menus = v.menus.filter(function(m){ return m.name; }).slice(0, 4).map(function(m){
       return '<span class="fd-menu-chip">' + esc(m.name) + '</span>';
     }).join('');
     return '<button class="fd-card fd-press" data-open="' + esc(p.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
@@ -557,8 +733,8 @@
       '<div class="fd-card-body">' +
         '<div class="fd-card-top"><span class="fd-card-title">' + esc(p.name || '이름 없는 가게') + '</span>' +
           (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : '') + '</div>' +
-        '<div class="fd-card-meta">' + (p.rating ? starsRO(p.rating) + ' ' : '') + meta + '</div>' +
-        (p.oneLiner ? '<div class="fd-card-quote">' + esc(p.oneLiner) + '</div>' : '') +
+        '<div class="fd-card-meta">' + (v.rating ? starsRO(v.rating) + ' ' : '') + meta + '</div>' +
+        (v.oneLiner ? '<div class="fd-card-quote">' + esc(v.oneLiner) + '</div>' : '') +
         (menus ? '<div class="fd-menu-chips">' + menus + '</div>' : '') +
       '</div></button>';
   }
@@ -574,8 +750,8 @@
   }
   function renderStats(){
     var n = state.places.length;
-    var rated = state.places.filter(function(p){ return p.rating; });
-    var avg = rated.length ? rated.reduce(function(s, p){ return s + p.rating; }, 0) / rated.length : 0;
+    var rated = state.places.map(shownVisit).filter(function(v){ return v.rating; });
+    var avg = rated.length ? rated.reduce(function(s, v){ return s + v.rating; }, 0) / rated.length : 0;
     $('#fd-stats').textContent = n
       ? '지금까지 ' + n + '곳을 기록했어요' + (avg ? ' · 평균 ★' + avg.toFixed(1) : '')
       : '맛있게 먹은 곳을 하나씩 남겨 보세요';
@@ -656,26 +832,27 @@
 
   // ---------- 상세 ----------
   function detailHTML(p){
-    var html = '';
-    if (p.photos.length) {
+    var html = '', v = shownVisit(p);
+    if (v.photos.length) {
       html += '<div class="fd-gallery"><div class="fd-gallery-track">' +
-        p.photos.map(function(id, i){
+        v.photos.map(function(id, i){
           return '<button data-view="' + i + '" aria-label="사진 크게 보기"><img data-pid="' + esc(id) + '" data-kind="full" alt=""></button>';
         }).join('') + '</div>' +
-        (p.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + p.photos.length + '</span>' : '') + '</div>';
+        (v.photos.length > 1 ? '<span class="fd-gallery-count">1 / ' + v.photos.length + '</span>' : '') + '</div>';
     } else {
       html += '<div class="fd-detail-hero-empty">' + catEmoji(p.category) + '</div>';
     }
-    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area, p.visitedAt ? fmtDate(p.visitedAt) + ' 방문' : '']
+    var when = !p.visits.length ? '방문 기록 없음' : v.visitedAt ? fmtDate(v.visitedAt) + ' 방문' : '';
+    var meta = [p.category ? catEmoji(p.category) + ' ' + p.category : '', p.area, when]
       .filter(Boolean).map(esc).join(' · ');
     html += '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>';
     if (meta) html += '<div class="fd-detail-meta">' + meta + '</div>';
-    if (p.rating || p.revisit) {
-      html += '<div class="fd-detail-rate">' + (p.rating ? starsRO(p.rating, 'lg') + '<span class="fd-rate-word">' + esc(RATE_WORDS[p.rating]) + '</span>' : '') +
+    if (v.rating || p.revisit) {
+      html += '<div class="fd-detail-rate">' + (v.rating ? starsRO(v.rating, 'lg') + '<span class="fd-rate-word">' + esc(RATE_WORDS[v.rating]) + '</span>' : '') +
         (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : p.revisit === 'no' ? '<span class="fd-again" style="color:var(--muted);background:var(--surface-alt)">한 번이면 충분</span>' : '') + '</div>';
     }
-    if (p.oneLiner) html += '<div class="fd-quote-box">' + esc(p.oneLiner) + '</div>';
-    var menus = p.menus.filter(function(m){ return m.name || m.note || m.rating; });
+    if (v.oneLiner) html += '<div class="fd-quote-box">' + esc(v.oneLiner) + '</div>';
+    var menus = v.menus.filter(function(m){ return m.name || m.note || m.rating; });
     if (menus.length) {
       html += '<div class="fd-section-title">🍽️ 먹은 메뉴 ' + menus.length + '</div><div class="fd-menu-list">' +
         menus.map(function(m){
@@ -684,7 +861,8 @@
             (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
         }).join('') + '</div>';
     }
-    if (p.memo) html += '<div class="fd-section-title">📝 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
+    if (v.memo) html += '<div class="fd-section-title">📝 메모</div><div class="fd-memo">' + esc(v.memo) + '</div>';
+    if (p.memo) html += '<div class="fd-section-title">🏠 가게 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
     html += '<div class="fd-detail-actions"><button class="fd-btn-ghost fd-press" data-act="delete">지우기</button>' +
       '<button class="fd-btn-primary fd-press" data-act="edit">✏️ 고치기</button></div>';
     return html;
@@ -694,9 +872,10 @@
     inner.innerHTML = detailHTML(p);
     hydrateImgs(inner);
     var track = $('.fd-gallery-track', inner), count = $('.fd-gallery-count', inner);
+    var n = shownVisit(p).photos.length;
     if (track && count) track.addEventListener('scroll', function(){
       var i = Math.round(track.scrollLeft / track.clientWidth);
-      count.textContent = (i + 1) + ' / ' + p.photos.length;
+      count.textContent = (i + 1) + ' / ' + n;
     }, { passive:true });
   }
   function openDetail(id){
@@ -717,7 +896,7 @@
         removePlace(id);
         sheet.close();
       }
-      else if (b.dataset.view != null) openViewer(cur.photos, Number(b.dataset.view));
+      else if (b.dataset.view != null) openViewer(shownVisit(cur).photos, Number(b.dataset.view));
     });
   }
 
@@ -725,10 +904,10 @@
   function finishPendingDelete(){
     if (!pendingDelete) return;
     clearTimeout(pendingDelete.timer);
-    var ids = pendingDelete.place.photos;
+    var ids = placePhotos(pendingDelete.place);
     pendingDelete = null;
-    // 다른 기록이 같은 사진을 쓰지 않을 때만 지운다
-    photoDel(ids.filter(function(pid){ return !state.places.some(function(p){ return p.photos.indexOf(pid) !== -1; }); }));
+    // 다른 방문이 같은 사진을 쓰지 않을 때만 지운다
+    photoDel(ids.filter(function(pid){ return !photoInUse(pid); }));
   }
   function removePlace(id){
     finishPendingDelete();
@@ -814,12 +993,40 @@
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
   }
 
+  // 입력 폼은 가게 필드와 방문 필드를 한 장의 draft로 다룬다
+  var PLACE_FORM_FIELDS = ['name', 'category', 'area', 'revisit'];
+  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
+  function draftFrom(place, visit){
+    var d = { name:'', category:'', area:'', revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], memo:'' };
+    if (place) PLACE_FORM_FIELDS.forEach(function(k){ d[k] = clone(place[k]); });
+    if (visit) VISIT_FORM_FIELDS.forEach(function(k){ d[k] = clone(visit[k]); });
+    return d;
+  }
+  function draftHasVisit(d){
+    return !!(d.visitedAt || d.rating || d.oneLiner || d.menus.length || d.photos.length || d.memo);
+  }
+  // draft를 가게(+방문)에 반영한 새 가게를 돌려준다. place가 없으면 새 가게 + 새 방문.
+  // 방문이 없던 가게는 방문 칸에 뭔가 적었을 때만 방문을 새로 만든다 (가짜 방문 금지)
+  function applyDraft(place, visit, d){
+    var p = place ? clone(place) : { id:uid(), location:null, links:[], memo:'', fromWishIds:[], visits:[] };
+    PLACE_FORM_FIELDS.forEach(function(k){ p[k] = d[k]; });
+    var v = null;
+    if (visit) {
+      v = findVisit(p, visit.id);
+    } else if (!place || draftHasVisit(d)) {
+      v = { id:uid() };
+      p.visits.push(v);
+    }
+    if (v) VISIT_FORM_FIELDS.forEach(function(k){ v[k] = clone(d[k]); });
+    touch(p, v);
+    return normalizePlace(p);
+  }
+
   function openEdit(id){
+    // 고치기는 그 가게와 화면에 보이는 (가장 최근) 방문 하나를 고친다
     var src = id ? findPlace(id) : null;
-    var draft = src ? clone(src) : {
-      id:uid(), name:'', category:'', area:'', visitedAt:today(), rating:0, oneLiner:'',
-      menus:[], photos:[], revisit:'', memo:'', createdAt:'', updatedAt:''
-    };
+    var srcVisit = src ? latestVisit(src) : null;
+    var draft = draftFrom(src, srcVisit);
     if (!draft.menus.length) draft.menus.push(newMenu());
     var startPhotos = draft.photos.slice();
     var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
@@ -995,16 +1202,15 @@
       draft.menus = draft.menus
         .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
         .filter(function(m){ return m.name || m.note || m.rating; });
-      var now = new Date().toISOString();
-      draft.updatedAt = now;
-      if (!draft.createdAt) draft.createdAt = now;
-      var place = normalizePlace(draft);
-      var cur = findPlace(place.id);
+      var cur = src ? findPlace(src.id) : null;
+      if (src && !cur) { toast('이미 지운 기록이에요'); photoDel(added); sheet.close(); return; }
+      var place = applyDraft(cur, srcVisit, draft);
+      var before = state.places.slice();
       if (cur) state.places[state.places.indexOf(cur)] = place;
       else state.places.push(place);
-      if (!save()) return;
-      // 빠진 사진은 저장이 끝난 뒤에 지운다
-      photoDel(startPhotos.concat(added).filter(function(x){ return place.photos.indexOf(x) === -1; }));
+      if (!save()) { state.places = before; return; }
+      // 빠진 사진은 저장이 끝난 뒤에, 어느 방문에서도 쓰지 않을 때만 지운다
+      photoDel(startPhotos.concat(added).filter(function(x){ return !photoInUse(x); }));
       render();
       sheet.close();
       var detail = $('.fd-sheet[data-detail="' + place.id + '"]');
@@ -1027,8 +1233,7 @@
   function exportBackup(){
     finishPendingDelete();
     toast('백업 파일을 만드는 중…');
-    var ids = [];
-    state.places.forEach(function(p){ p.photos.forEach(function(id){ if (ids.indexOf(id) === -1) ids.push(id); }); });
+    var ids = allPhotoIds(state.places);
     var photos = {};
     ids.reduce(function(chain, id){
       return chain.then(function(){
@@ -1040,7 +1245,7 @@
         });
       });
     }, Promise.resolve()).then(function(){
-      var json = JSON.stringify({ app:'food-diary', version:1, exportedAt:new Date().toISOString(), places:state.places, photos:photos });
+      var json = JSON.stringify({ app:'food-diary', version:2, exportedAt:new Date().toISOString(), places:state.places, wishes:state.wishes, photos:photos });
       var name = '맛집기록서-' + today() + '.json';
       var file = new File([json], name, { type:'application/json' });
       var touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
@@ -1059,6 +1264,28 @@
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
     toast('백업 파일을 저장했어요 📦');
   }
+  // 백업 파일 → { places, wishes, photos }. 1판 파일(version 1 또는 없음)은 옮기기 규칙 그대로 바꾼다.
+  // 받을 수 없는 파일이면 null
+  function readBackup(data){
+    if (!data || typeof data !== 'object' || data.app !== 'food-diary' || !Array.isArray(data.places)) return null;
+    var photos = data.photos && typeof data.photos === 'object' ? data.photos : {};
+    if (data.version == null || data.version === 1) return { places:placesFromV1(data.places), wishes:[], photos:photos };
+    if (data.version === 2) {
+      var s = normalizeState(data);
+      return { places:s.places, wishes:s.wishes, photos:photos };
+    }
+    return null;
+  }
+  // 사진은 지금 기기에 없는 것만 넣는다. 합친 결과의 방문이 쓰는 사진만 본다
+  function missingPhotos(places, photos){
+    var ids = allPhotoIds(places).filter(function(id){ return photos[id] && photos[id].full; });
+    var need = [];
+    return ids.reduce(function(chain, id){
+      return chain.then(function(){
+        return photoGet(id).then(function(have){ if (!have) need.push(id); }, function(){});
+      });
+    }, Promise.resolve()).then(function(){ return need; });
+  }
   function importBackup(){
     var input = $('#fd-import-input');
     input.value = '';
@@ -1068,42 +1295,44 @@
       f.text().then(function(text){
         var data;
         try { data = JSON.parse(text); } catch (e) { toast('읽을 수 없는 파일이에요'); return; }
-        if (!data || data.app !== 'food-diary' || !Array.isArray(data.places)) { toast('맛집 기록서 백업 파일이 아니에요'); return; }
-        var incoming = data.places.map(normalizePlace);
-        var fresh = 0, newer = 0;
-        incoming.forEach(function(p){
-          var cur = findPlace(p.id);
-          if (!cur) fresh++;
-          else if (cmp(p.updatedAt, cur.updatedAt) > 0) newer++;
-        });
-        if (!fresh && !newer) { toast('이미 다 들어 있는 기록이에요'); return; }
-        if (!confirm('새 기록 ' + fresh + '개' + (newer ? ', 더 최근에 고친 기록 ' + newer + '개' : '') +
-          '를 합칠까요?\n지금 있는 기록은 지워지지 않아요.')) return;
+        var inc = readBackup(data);
+        if (!inc) {
+          toast(data && data.app === 'food-diary' && typeof data.version === 'number' && data.version > 2
+            ? '더 새 버전에서 만든 백업이라 불러올 수 없어요' : '맛집 기록서 백업 파일이 아니에요');
+          return;
+        }
+        // 지우기 되돌리기가 남아 있으면 먼저 끝낸다 (되돌리기와 불러오기가 겹치면 같은 가게가 둘이 된다)
         finishPendingDelete();
-        var photos = data.photos && typeof data.photos === 'object' ? data.photos : {};
-        var need = [];
-        incoming.forEach(function(p){
-          var cur = findPlace(p.id);
-          if (!cur || cmp(p.updatedAt, cur.updatedAt) > 0) p.photos.forEach(function(id){ if (photos[id]) need.push(id); });
-        });
-        toast('불러오는 중…');
-        need.reduce(function(chain, id){
-          return chain.then(function(){
-            return photoGet(id).then(function(have){
-              if (have) return;
-              var ph = photos[id];
+        var merged = mergeData(state, inc);
+        var same = JSON.stringify({ p:merged.places, w:merged.wishes }) === JSON.stringify({ p:state.places, w:state.wishes });
+        return missingPhotos(merged.places, inc.photos).then(function(need){
+          var c = merged.counts;
+          if (same && !need.length) { toast('이미 다 들어 있는 기록이에요'); return; }
+          var parts = [];
+          if (c.newPlaces) parts.push('새 가게 ' + c.newPlaces + '곳');
+          if (c.newVisits) parts.push('새 방문 ' + c.newVisits + '번');
+          if (c.newWishes) parts.push('새 가고 싶은 곳 ' + c.newWishes + '곳');
+          if (c.newer) parts.push('더 최근 것으로 바뀌는 기록 ' + c.newer + '개');
+          if (need.length) parts.push('사진 ' + need.length + '장');
+          if (!parts.length) parts.push('바뀐 내용');
+          if (!confirm(parts.join(', ') + '\n이 내용을 합칠까요? 지금 있는 기록은 지워지지 않아요.')) return;
+          toast('불러오는 중…');
+          return need.reduce(function(chain, id){
+            return chain.then(function(){
+              var ph = inc.photos[id];
               return Promise.all([fetch(ph.full).then(function(r){ return r.blob(); }), fetch(ph.thumb || ph.full).then(function(r){ return r.blob(); })])
-                .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); });
-            }).catch(function(){});
+                .then(function(b){ return photoPut({ id:id, full:b[0], thumb:b[1] }); })
+                .catch(function(){});
+            });
+          }, Promise.resolve()).then(function(){
+            // 사진을 넣는 동안 바뀌었을 수 있으니 지금 상태에 다시 합친다
+            var m = mergeData(state, inc);
+            var before = { places:state.places, wishes:state.wishes };
+            state.places = m.places; state.wishes = m.wishes;
+            if (!save()) { state.places = before.places; state.wishes = before.wishes; return; }
+            render();
+            toast('백업을 합쳤어요');
           });
-        }, Promise.resolve()).then(function(){
-          incoming.forEach(function(p){
-            var cur = findPlace(p.id);
-            if (!cur) state.places.push(p);
-            else if (cmp(p.updatedAt, cur.updatedAt) > 0) state.places[state.places.indexOf(cur)] = p;
-          });
-          save(); render();
-          toast('기록 ' + (fresh + newer) + '개를 합쳤어요');
         });
       }).catch(function(){ toast('파일을 읽지 못했어요'); });
     };
@@ -1115,7 +1344,7 @@
     est.catch(function(){ return null; }).then(function(e){
       var used = e && e.usage ? ' · 사용 중 ' + (e.usage / 1048576).toFixed(1) + 'MB' : '';
       openActionSheet('백업', '기록과 사진은 이 기기에만 저장돼요. 기기를 바꾸거나 정리하기 전에 백업 파일을 남겨 두세요.' + used, [
-        { icon:'📦', label:'백업 파일 만들기', sub:'기록 ' + n + '개와 사진을 파일 하나로', run:exportBackup },
+        { icon:'📦', label:'백업 파일 만들기', sub:'가게 ' + n + '곳과 사진을 파일 하나로', run:exportBackup },
         { icon:'📥', label:'백업 파일 불러오기', sub:'지금 기록에 합쳐요 (지워지지 않아요)', run:importBackup }
       ]);
     });
