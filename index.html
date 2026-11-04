@@ -1491,11 +1491,31 @@
       var out = clone(draft);
       out.name = out.name.trim();
       out.area = out.area.trim();
-      out.oneLiner = out.oneLiner.trim();
-      out.memo = out.memo.replace(/\s+$/, '');
-      out.menus = out.menus
-        .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
-        .filter(function(m){ return m.name || m.note || m.rating; });
+      if (mode === 'edit') {
+        // 옛 방문 고치기: 손대지 않은 값은 저장된 그대로 둔다. 바꾼 칸만 공백을 정리한다
+        if (out.oneLiner !== srcVisit.oneLiner) out.oneLiner = out.oneLiner.trim();
+        if (out.memo !== srcVisit.memo) out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus.map(function(m){
+          var orig = null;
+          srcVisit.menus.forEach(function(o){ if (o.id === m.id) orig = o; });
+          if (!orig) {   // 이번에 넣은 줄
+            m.name = m.name.trim(); m.note = m.note.trim();
+            return (m.name || m.note || m.rating) ? m : null;
+          }
+          // 원래 있던 줄: 바뀌지 않은 칸은 저장된 값, 비어 보여도 지우지 않는다 (빼기 버튼으로만 빠진다)
+          var r = clone(orig);
+          if (m.name !== orig.name) r.name = m.name.trim();
+          if (m.note !== orig.note) r.note = m.note.trim();
+          r.rating = m.rating;
+          return r;
+        }).filter(Boolean);
+      } else {
+        out.oneLiner = out.oneLiner.trim();
+        out.memo = out.memo.replace(/\s+$/, '');
+        out.menus = out.menus
+          .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })
+          .filter(function(m){ return m.name || m.note || m.rating; });
+      }
       var res = saveVisit(target ? target.id : null, srcVisit ? srcVisit.id : null, out);
       if (!res.place) {
         if (res.error) toast(res.error);
@@ -1530,14 +1550,13 @@
         '<div class="fd-link-edits" id="fd-pf-links">' + d.links.map(linkEditHTML).join('') + '</div>' +
         '<button type="button" class="fd-add-line fd-press" data-act="add-link" style="margin-top:8px">🔗 링크 추가</button></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-pf-memo">가게 메모</label>' +
-        '<textarea class="fd-textarea" id="fd-pf-memo" data-pf="memo" maxlength="1000" placeholder="주차, 영업시간, 추천 메뉴…">' + esc(d.memo) + '</textarea></div>' +
-      '<div class="fd-field"><label class="fd-label">다시 갈까요?</label>' +
-        revisitToggleHTML(d.revisit, function(v){ return 'data-revisit="' + v + '"'; }) + '</div>';
+        '<textarea class="fd-textarea" id="fd-pf-memo" data-pf="memo" maxlength="1000" placeholder="주차, 영업시간, 추천 메뉴…">' + esc(d.memo) + '</textarea></div>';
+    // 또 갈래요는 여기서 고치지 않는다. 가게 화면의 바꾸기와 새 방문 폼에서만 바뀐다
   }
   function openPlaceForm(id){
     var src = findPlace(id);
     if (!src) return;
-    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo, revisit:src.revisit };
+    var d = { name:src.name, category:src.category, area:src.area, links:src.links.slice(), memo:src.memo };
     var dirty = false;
     var sheet = openSheet({
       title:'가게 정보 고치기', leftLabel:'취소',
@@ -1557,13 +1576,6 @@
         dirty = true;
         d.category = d.category === cat.dataset.pickCat ? '' : cat.dataset.pickCat;
         $all('[data-pick-cat]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.pickCat === d.category); });
-        return;
-      }
-      var rv = t.closest('[data-revisit]');
-      if (rv) {
-        dirty = true;
-        d.revisit = d.revisit === rv.dataset.revisit ? '' : rv.dataset.revisit;
-        $all('[data-revisit]', sheet).forEach(function(b){ b.classList.toggle('on', b.dataset.revisit === d.revisit); });
         return;
       }
       var act = t.closest('[data-act]');
@@ -1600,7 +1612,6 @@
       next.area = d.area === cur.area ? cur.area : d.area.trim();
       next.links = links;
       next.memo = d.memo === cur.memo ? cur.memo : d.memo.replace(/\s+$/, '');
-      next.revisit = d.revisit;
       touch(next, null);
       next = normalizePlace(next);
       if (!replacePlace(cur, next)) return;
