@@ -66,7 +66,7 @@
   }
   .fd-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
   .fd-head h1{ margin:0; font-size:26px; letter-spacing:-.5px; font-weight:800; }
-  .fd-h1-emoji{ display:inline-block; font-size:22px; transform:rotate(-8deg); }
+
   .fd-sub{ margin:2px 0 0; color:var(--muted); font-size:13.5px; }
   .fd-icon-btn{
     width:40px; height:40px; border-radius:50%; background:var(--surface);
@@ -406,7 +406,7 @@
 <div class="fd-app">
   <header class="fd-head">
     <div>
-      <h1>먹보일기 <span class="fd-h1-emoji">🍙</span></h1>
+      <h1>윤지의 먹보일기</h1>
       <p class="fd-sub" id="fd-stats"></p>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
@@ -435,7 +435,7 @@
   </div>
   <main class="fd-list" id="fd-list"></main>
 </div>
-<button class="fd-fab" id="fd-add"><span style="font-size:19px;line-height:1" id="fd-add-emoji">🍴</span> <span id="fd-add-label">맛집 기록하기</span></button>
+<button class="fd-fab" id="fd-add"><span style="font-size:19px;line-height:1" id="fd-add-emoji" hidden></span><span id="fd-add-label">일기 기록하기</span></button>
 <input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
 <input type="file" id="fd-import-input" accept="application/json,.json" hidden>
 <div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
@@ -978,8 +978,9 @@
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     var w = ui.side === 'wishes';
-    $('#fd-add-emoji').textContent = w ? '💭' : '🍴';
-    $('#fd-add-label').textContent = w ? '가고 싶은 곳 넣기' : '맛집 기록하기';
+    $('#fd-add-emoji').textContent = w ? '💭' : '';
+    $('#fd-add-emoji').hidden = !w;
+    $('#fd-add-label').textContent = w ? '가고 싶은 곳 넣기' : '일기 기록하기';
     $('#fd-q').placeholder = w ? '가게, 먹고 싶은 메뉴, 메모로 찾기' : '가게, 메뉴, 지역으로 찾기';
   }
   function render(){ renderSide(); renderStats(); renderCats(); renderList(); }
