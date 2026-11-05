@@ -282,6 +282,7 @@
   .fd-menu-item-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .fd-menu-item-name{ font-weight:700; word-break:keep-all; }
   .fd-menu-item-note{ font-size:14px; color:var(--ink-soft); margin-top:3px; }
+  .fd-visit-with{ font-size:14px; color:var(--ink-soft); margin-top:8px; word-break:keep-all; }
   .fd-memo{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:14px 16px; white-space:pre-wrap; word-break:break-word; font-size:14.5px; color:var(--ink-soft); }
   .fd-detail-actions{ display:flex; gap:8px; margin-top:28px; }
   .fd-detail-actions button{ flex:1; height:52px; border-radius:var(--radius-pill); font-weight:700; }
@@ -450,7 +451,8 @@
   var MAX_PHOTOS = 10;
   var CATS = [
     { name:'한식', emoji:'🍚' }, { name:'일식', emoji:'🍣' }, { name:'중식', emoji:'🥟' },
-    { name:'양식', emoji:'🍝' }, { name:'분식', emoji:'🍢' }, { name:'고기', emoji:'🥩' },
+    { name:'양식', emoji:'🍝' }, { name:'치킨', emoji:'🍗' }, { name:'피자', emoji:'🍕' },
+    { name:'분식', emoji:'🍢' }, { name:'고기', emoji:'🥩' },
     { name:'아시안', emoji:'🍜' }, { name:'카페·디저트', emoji:'🍰' }, { name:'술집', emoji:'🍻' },
     { name:'기타', emoji:'🍴' }
   ];
@@ -517,6 +519,7 @@
       oneLiner: str(v.oneLiner),
       menus: Array.isArray(v.menus) ? v.menus.map(normalizeMenu) : [],
       photos: strList(v.photos),
+      companions: str(v.companions),
       memo: str(v.memo),
       createdAt: str(v.createdAt),
       updatedAt: str(v.updatedAt)
@@ -822,7 +825,7 @@
     return '<span class="fd-stars-ro ' + (cls || '') + '" aria-label="별점 ' + v + '점">' + s + '</span>';
   }
   // 방문이 없는 가게도 같은 모양으로 그리도록 빈 방문을 쓴다 (저장하지 않는 화면용 값)
-  var NO_VISIT = { id:'', visitedAt:'', rating:0, oneLiner:'', menus:[], photos:[], memo:'', createdAt:'', updatedAt:'' };
+  var NO_VISIT = { id:'', visitedAt:'', rating:0, oneLiner:'', menus:[], photos:[], companions:'', memo:'', createdAt:'', updatedAt:'' };
   function shownVisit(p){ return latestVisit(p) || NO_VISIT; }
   // 목록 별점: 별점이 있는 방문(rating>0) 중 가장 최근 방문의 별점. 없으면 0 (별을 그리지 않는다)
   function listRating(p){
@@ -836,7 +839,7 @@
     if (!q) return true;
     var hay = [p.name, p.area, p.category, p.memo, p.location ? p.location.address : ''];
     p.visits.forEach(function(v){
-      hay.push(v.oneLiner, v.memo);
+      hay.push(v.oneLiner, v.companions, v.memo);
       v.menus.forEach(function(m){ hay.push(m.name + ' ' + m.note); });
     });
     return hayHas(hay, q);
@@ -1072,6 +1075,7 @@
           (m.note ? '<div class="fd-menu-item-note">' + esc(m.note) + '</div>' : '') + '</div>';
       }).join('') + '</div>';
     }
+    if (v.companions) html += '<div class="fd-visit-with">👫 ' + esc(v.companions) + '</div>';
     if (v.memo) html += '<div class="fd-memo">' + esc(v.memo) + '</div>';
     html += '<div class="fd-visit-actions">' +
       '<button class="fd-mini-btn fd-press" data-act="edit-visit" data-vid="' + esc(v.id) + '">✏️ 고치기</button>' +
@@ -1496,6 +1500,8 @@
       ['카페·디저트', ['카페', '디저트', '베이커리']],
       ['술집', ['술집']],
       ['분식', ['분식']],
+      ['치킨', ['치킨']],
+      ['피자', ['피자']],
       ['고기', ['육류,고기', '고기']],
       ['한식', ['한식']],
       ['일식', ['일식']],
@@ -1670,10 +1676,9 @@
   }
   function menuEditHTML(m){
     return '<div class="fd-menu-edit" data-mid="' + esc(m.id) + '">' +
-      '<div class="fd-row"><input class="fd-input" data-mf="name" value="' + esc(m.name) + '" placeholder="메뉴 이름 (예: 트러플 크림 파스타)" maxlength="40" enterkeyhint="next">' +
+      '<div class="fd-row"><input class="fd-input" data-mf="name" value="' + esc(m.name) + '" placeholder="메뉴 이름 (예: 트러플 크림 파스타)" maxlength="40" enterkeyhint="done">' +
       '<button type="button" class="fd-menu-del" data-act="del-menu" aria-label="메뉴 빼기">✕</button></div>' +
-      '<div class="fd-row">' + starsIn(m.rating, 'sm') +
-      '<input class="fd-input" data-mf="note" value="' + esc(m.note) + '" placeholder="이 메뉴 한마디" maxlength="40" enterkeyhint="done"></div>' +
+      '<div class="fd-row">' + starsIn(m.rating, 'sm') + '</div>' +
     '</div>';
   }
   function photoTileHTML(id, i){
@@ -1711,10 +1716,12 @@
       '<div class="fd-field"><label class="fd-label" for="fd-ed-one">한줄평</label>' +
         '<input class="fd-input" id="fd-ed-one" data-f="oneLiner" value="' + esc(d.oneLiner) + '" placeholder="한마디로 어땠나요?" maxlength="60" autocomplete="off">' +
         '<div class="fd-counter" id="fd-ed-one-count">' + d.oneLiner.length + ' / 60</div></div>' +
-      '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점·한마디도 남길 수 있어요</small></label>' +
+      '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점도 남길 수 있어요</small></label>' +
         '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
         '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">🥢 메뉴 추가</button></div>' +
-      '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모 <small>가격, 웨이팅, 같이 간 사람…</small></label>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-with">같이 간 사람</label>' +
+        '<input class="fd-input" id="fd-ed-with" data-f="companions" value="' + esc(d.companions) + '" placeholder="예: 엄마, 친구 민지" maxlength="60" autocomplete="off"></div>' +
+      '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모</label>' +
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
     // 또 갈래요는 새 방문을 쓸 때만. 옛 방문을 고칠 때 지금 마음이 덮이면 안 된다
     if (mode !== 'edit') {
@@ -1726,16 +1733,16 @@
 
   // 입력 폼은 가게 필드와 방문 필드를 한 장의 draft로 다룬다
   var PLACE_FORM_FIELDS = ['name', 'category', 'area', 'revisit'];
-  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'memo'];
+  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'companions', 'memo'];
   function draftFrom(place, visit){
     // location은 새 가게를 쓸 때만 쓴다 (이미 있는 가게의 위치는 가게 정보 고치기에서 바꾼다)
-    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], memo:'' };
+    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], companions:'', memo:'' };
     if (place) PLACE_FORM_FIELDS.forEach(function(k){ d[k] = clone(place[k]); });
     if (visit) VISIT_FORM_FIELDS.forEach(function(k){ d[k] = clone(visit[k]); });
     return d;
   }
   function draftHasVisit(d){
-    return !!(d.visitedAt || d.rating || d.oneLiner || d.menus.length || d.photos.length || d.memo);
+    return !!(d.visitedAt || d.rating || d.oneLiner || d.menus.length || d.photos.length || d.companions || d.memo);
   }
   // draft를 가게(+방문)에 반영한 새 가게를 돌려준다. place가 없으면 새 가게 + 새 방문.
   // 방문이 없던 가게는 방문 칸에 뭔가 적었을 때만 방문을 새로 만든다 (가짜 방문 금지)
@@ -1958,11 +1965,10 @@
     sheet.addEventListener('focusout', onNameLeave);
     sheet.addEventListener('change', onNameLeave);
     sheet.addEventListener('keydown', function(e){
-      // 메뉴 이름에서 완료를 누르면 한마디 칸으로
+      // 메뉴 이름에서 완료를 누르면 키패드를 내린다 (폼이 저장되지 않게)
       if (e.key === 'Enter' && e.target.dataset && e.target.dataset.mf === 'name') {
         e.preventDefault();
-        var note = $('[data-mf="note"]', e.target.closest('[data-mid]'));
-        if (note) note.focus();
+        e.target.blur();
       }
     });
 
@@ -2119,6 +2125,7 @@
       if (mode === 'edit') {
         // 옛 방문 고치기: 손대지 않은 값은 저장된 그대로 둔다. 바꾼 칸만 공백을 정리한다
         if (out.oneLiner !== srcVisit.oneLiner) out.oneLiner = out.oneLiner.trim();
+        if (out.companions !== srcVisit.companions) out.companions = out.companions.trim();
         if (out.memo !== srcVisit.memo) out.memo = out.memo.replace(/\s+$/, '');
         out.menus = out.menus.map(function(m){
           var orig = null;
@@ -2136,6 +2143,7 @@
         }).filter(Boolean);
       } else {
         out.oneLiner = out.oneLiner.trim();
+        out.companions = out.companions.trim();
         out.memo = out.memo.replace(/\s+$/, '');
         out.menus = out.menus
           .map(function(m){ m.name = m.name.trim(); m.note = m.note.trim(); return m; })

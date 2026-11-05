@@ -10,7 +10,7 @@
   places: [{
     id: string,
     name: string,                    // 필수(앞뒤 공백 뺀 뒤 비면 저장 불가)
-    category: '' | '한식'|'일식'|'중식'|'양식'|'분식'|'고기'|'아시안'|'카페·디저트'|'술집'|'기타',
+    category: '' | '한식'|'일식'|'중식'|'양식'|'치킨'|'피자'|'분식'|'고기'|'아시안'|'카페·디저트'|'술집'|'기타',
     area: string,
     location: null | { kakaoId: string, placeName: string, address: string, lat: number|null, lng: number|null },
     revisit: 'yes' | 'no' | '',
@@ -24,6 +24,7 @@
       oneLiner: string,
       menus: [{ id: string, name: string, rating: 0..5, note: string }],
       photos: string[],              // IndexedDB 사진 id, 첫 장이 대표
+      companions: string,            // 같이 간 사람 (자유 글)
       memo: string,
       createdAt: ISO문자열, updatedAt: ISO문자열
     }],
