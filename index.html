@@ -364,7 +364,21 @@
   .fd-link-edits{ display:flex; flex-direction:column; gap:6px; }
   .fd-link-edit{ align-items:center; }
 
-  /* ---- 다녀온 곳 / 가고 싶은 곳 ---- */
+  /* ---- 달력 ---- */
+  .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; animation:fd-rise .25s ease both; }
+  .fd-cal-month h3{ margin:0 0 12px; text-align:center; font-size:17px; font-weight:800; color:var(--ink); }
+  .fd-cal-grid{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); row-gap:2px; }
+  .fd-cal-dow{ text-align:center; font-size:12px; color:var(--muted); padding-bottom:6px; }
+  .fd-cal-day{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:60px; padding:3px 0; border-radius:var(--radius-sm); min-width:0; }
+  .fd-cal-num{ font-size:14px; line-height:20px; min-width:22px; padding:0 4px; text-align:center; color:var(--muted); font-weight:600; border-radius:var(--radius-pill); }
+  .fd-cal-day.has .fd-cal-num{ color:var(--ink); font-weight:700; }
+  .fd-cal-num.today{ background:var(--accent); color:var(--accent-ink) !important; }
+  .fd-cal-dot{ position:relative; width:34px; height:34px; border-radius:50%; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent-soft); }
+  .fd-cal-dot img{ width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+  .fd-cal-n{ position:absolute; top:-5px; right:-6px; min-width:16px; height:16px; padding:0 4px; border-radius:var(--radius-pill); background:var(--accent); color:var(--accent-ink); font-size:10px; font-weight:700; line-height:16px; text-align:center; }
+  .fd-cal-hint{ text-align:center; color:var(--muted); font-size:14px; padding:6px 0 2px; }
+
+  /* ---- 다녀온 곳 / 달력 ---- */
   .fd-side{ display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
   .fd-side button{ flex:1; min-width:0; height:40px; border-radius:var(--radius-pill); font-size:14.5px; color:var(--muted); white-space:nowrap; }
   .fd-side button.on{ background:var(--surface); color:var(--ink); font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.08); }
@@ -414,7 +428,7 @@
   </header>
   <div class="fd-side" id="fd-side" role="tablist">
     <button type="button" data-side="places" role="tab">다녀온 곳</button>
-    <button type="button" data-side="wishes" role="tab">가고 싶은 곳</button>
+    <button type="button" data-side="calendar" role="tab">달력</button>
   </div>
   <label class="fd-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -806,7 +820,8 @@
 
   // ---------- 상태 ----------
   var state = load();
-  // side: 'places' 다녀온 곳 / 'wishes' 가고 싶은 곳. 검색어와 종류는 두 쪽이 함께 쓴다
+  // side: 'places' 다녀온 곳 / 'calendar' 달력. 달력은 검색어·종류를 쓰지 않는다
+  // (가고 싶은 곳 탭은 없앴다. 저장된 가고 싶은 곳은 지우지 않고 저장·백업에 그대로 남는다)
   var ui = { side:'places', q:'', cat:'', sort:'recent' };
 
   function findPlace(id){
@@ -847,33 +862,6 @@
   function hayHas(hay, q){
     hay = hay.join(' ').toLowerCase();
     return q.toLowerCase().split(/\s+/).every(function(w){ return !w || hay.indexOf(w) !== -1; });
-  }
-  // 가고 싶은 곳 검색 범위: 이름·지역·종류·주소·먹어 보고 싶은 메뉴·메모
-  function matchesWish(w, q){
-    if (!q) return true;
-    return hayHas([w.name, w.area, w.category, w.location ? w.location.address : '', w.memo].concat(w.wantMenus), q);
-  }
-  // 넣은 순서로, 최근에 넣은 것이 위 (createdAt 문자열 비교, 같으면 배열에서 뒤에 있는 것이 위)
-  function visibleWishes(){
-    return state.wishes.map(function(w, i){ return { w:w, i:i }; }).filter(function(x){
-      return (!ui.cat || x.w.category === ui.cat) && matchesWish(x.w, ui.q);
-    }).sort(function(a, b){
-      return cmp(b.w.createdAt, a.w.createdAt) || cmp(b.i, a.i);
-    }).map(function(x){ return x.w; });
-  }
-  function wishCardHTML(w, i){
-    var where = w.area || (w.location && w.location.address) || '';
-    var meta = [where, w.category].filter(Boolean).map(esc).join(' · ');
-    var chips = w.wantMenus.slice(0, 4).map(function(m){ return '<span class="fd-menu-chip">' + esc(m) + '</span>'; });
-    if (w.wantMenus.length > 4) chips.push('<span class="fd-menu-chip">+' + (w.wantMenus.length - 4) + '</span>');
-    return '<button class="fd-card fd-press" data-wish="' + esc(w.id) + '" style="animation-delay:' + Math.min(i, 8) * 25 + 'ms">' +
-      '<div class="fd-thumb wish">' + catEmoji(w.category) + '</div>' +
-      '<div class="fd-card-body">' +
-        '<div class="fd-card-top"><span class="fd-card-title">' + esc(w.name || '이름 없는 곳') + '</span>' +
-          (w.link ? '<span class="fd-link-mark">🔗 링크</span>' : '') + '</div>' +
-        (meta ? '<div class="fd-card-meta">' + meta + '</div>' : '') +
-        (chips.length ? '<div class="fd-menu-chips">' + chips.join('') + '</div>' : '') +
-      '</div></button>';
   }
   function visible(){
     var list = state.places.filter(function(p){
@@ -921,7 +909,7 @@
   }
   function renderCats(){
     var used = {};
-    (ui.side === 'wishes' ? state.wishes : state.places).forEach(function(p){ if (p.category) used[p.category] = true; });
+    state.places.forEach(function(p){ if (p.category) used[p.category] = true; });
     var html = '<button class="fd-chip' + (ui.cat ? '' : ' on') + '" data-cat="">전체</button>';
     CATS.forEach(function(c){
       if (!used[c.name] && ui.cat !== c.name) return;
@@ -931,10 +919,6 @@
   }
   // 요약 줄: N곳 · 방문 M번 · 평균 ★x.x (평균은 목록 별점이 있는 가게들의 목록 별점 평균)
   function renderStats(){
-    if (ui.side === 'wishes') {
-      $('#fd-stats').textContent = state.wishes.length ? '가고 싶은 곳 ' + state.wishes.length + '곳' : '가 보고 싶은 곳을 모아 두세요';
-      return;
-    }
     var n = state.places.length, m = 0;
     state.places.forEach(function(p){ m += p.visits.length; });
     var rated = state.places.map(listRating).filter(Boolean);
@@ -945,7 +929,7 @@
   }
   // 검색창은 건드리지 않고 목록만 다시 그린다
   function renderList(){
-    if (ui.side === 'wishes') { renderWishList(); return; }
+    if (ui.side === 'calendar') { renderCalendar(); return; }
     var list = visible(), el = $('#fd-list');
     $('#fd-count').textContent = state.places.length ? list.length + '곳' : '';
     $('#fd-sort').style.visibility = state.places.length ? '' : 'hidden';
@@ -959,28 +943,72 @@
       hydrateImgs(el);
     }
   }
-  function renderWishList(){
-    var list = visibleWishes(), el = $('#fd-list');
-    $('#fd-count').textContent = state.wishes.length ? list.length + '곳' : '';
-    $('#fd-sort').style.visibility = 'hidden';   // 가고 싶은 곳은 넣은 순서 하나뿐
-    if (!state.wishes.length) {
-      el.innerHTML = '<div class="fd-empty"><h2>아직 가고 싶은 곳이 없어요</h2><p>아래 버튼을 눌러 가 보고 싶은 곳을 넣어 두세요</p></div>';
-    } else if (!list.length) {
-      el.innerHTML = '<div class="fd-empty"><div class="fd-empty-emoji">🔍</div><h2>찾는 곳이 없어요</h2><p>다른 말로 찾아보거나 분류를 바꿔 보세요</p></div>';
-    } else {
-      el.innerHTML = list.map(wishCardHTML).join('');
-    }
+  // ---------- 달력 ----------
+  // 방문한 날마다 숫자 아래 작은 동그라미에 그날의 대표 사진(없으면 종류 이모지)을 보여 준다
+  // 날짜별 방문: 그날 나중에 쓴 방문이 앞. 대표 사진은 사진이 있는 첫 방문의 첫 사진
+  function visitsByDay(){
+    var by = {};
+    state.places.forEach(function(p){
+      p.visits.forEach(function(v){
+        var y = Number(v.visitedAt.slice(0, 4));
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(v.visitedAt) || y < 1990 || y > 2100) return;
+        (by[v.visitedAt] = by[v.visitedAt] || []).push({ p:p, v:v });
+      });
+    });
+    Object.keys(by).forEach(function(k){ by[k].sort(function(a, b){ return cmp(b.v.createdAt, a.v.createdAt); }); });
+    return by;
   }
-  // 맨 위 바꾸기와 아래 버튼을 지금 쪽에 맞춘다. 검색창은 건드리지 않는다
+  function monthHTML(y, m, by, now){
+    var startDow = new Date(y, m - 1, 1).getDay(), n = new Date(y, m, 0).getDate();
+    var h = '<section class="fd-cal-month"><h3>' + y + '년 ' + m + '월</h3><div class="fd-cal-grid">';
+    ['일', '월', '화', '수', '목', '금', '토'].forEach(function(w){ h += '<span class="fd-cal-dow">' + w + '</span>'; });
+    for (var i = 0; i < startDow; i++) h += '<span></span>';
+    for (var d = 1; d <= n; d++) {
+      var key = y + '-' + pad(m) + '-' + pad(d), list = by[key];
+      var num = '<span class="fd-cal-num' + (key === now ? ' today' : '') + '">' + d + '</span>';
+      if (!list) { h += '<div class="fd-cal-day">' + num + '</div>'; continue; }
+      var pv = null;
+      list.forEach(function(x){ if (!pv && x.v.photos.length) pv = x.v; });
+      var dot = pv ? '<img data-pid="' + esc(pv.photos[0]) + '" alt="">' : catEmoji(list[0].p.category);
+      h += '<button type="button" class="fd-cal-day has fd-press" data-day="' + key + '" aria-label="' + m + '월 ' + d + '일 ' + list.length + '곳">' + num +
+        '<span class="fd-cal-dot">' + dot + (list.length > 1 ? '<span class="fd-cal-n">' + list.length + '</span>' : '') + '</span></button>';
+    }
+    return h + '</div></section>';
+  }
+  // 첫 방문 달부터 이번 달(미래 날짜 방문이 있으면 그 달)까지, 위가 옛날
+  function renderCalendar(){
+    var el = $('#fd-list'), by = visitsByDay(), days = Object.keys(by).sort(), now = today();
+    var first = days.length && days[0] < now ? days[0] : now;
+    var last = days.length && days[days.length - 1] > now ? days[days.length - 1] : now;
+    var y = Number(first.slice(0, 4)), m = Number(first.slice(5, 7));
+    var ly = Number(last.slice(0, 4)), lm = Number(last.slice(5, 7));
+    var html = days.length ? '' : '<div class="fd-cal-hint">일기를 쓰면 다녀온 날에 사진이 붙어요</div>';
+    while (y < ly || (y === ly && m <= lm)) {
+      html += monthHTML(y, m, by, now);
+      if (++m > 12) { m = 1; y++; }
+    }
+    el.innerHTML = html;
+    hydrateImgs(el);
+  }
+  // 날짜를 누르면: 한 곳이면 바로 그 가게, 여러 곳이면 고르게 한다
+  function openDay(key){
+    var list = visitsByDay()[key] || [];
+    if (list.length === 1) { openDetail(list[0].p.id); return; }
+    if (!list.length) return;
+    openActionSheet(fmtDate(key), '', list.map(function(x){
+      return { icon:catEmoji(x.p.category), label:x.p.name || '이름 없는 가게', sub:x.v.rating ? '★ ' + x.v.rating : '',
+        run:function(){ openDetail(x.p.id); } };
+    }));
+  }
+  // 맨 위 바꾸기를 지금 쪽에 맞춘다. 달력에서는 검색·종류·정렬 줄을 숨긴다 (검색창 자체는 다시 그리지 않는다)
   function renderSide(){
     $all('#fd-side [data-side]').forEach(function(b){
       var on = b.dataset.side === ui.side;
       b.classList.toggle('on', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
-    var w = ui.side === 'wishes';
-    $('#fd-add-label').textContent = w ? '가고 싶은 곳 넣기' : '일기 기록하기';
-    $('#fd-q').placeholder = w ? '가게, 먹고 싶은 메뉴, 메모로 찾기' : '가게, 메뉴, 지역으로 찾기';
+    var cal = ui.side === 'calendar';
+    ['.fd-search', '#fd-cats', '.fd-sortbar'].forEach(function(s){ $(s).style.display = cal ? 'none' : ''; });
   }
   function render(){ renderSide(); renderStats(); renderCats(); renderList(); }
 
@@ -1396,7 +1424,6 @@
   function mapItems(){
     var items = [];
     visible().forEach(function(p){ items.push({ kind:'place', id:p.id, it:p }); });
-    visibleWishes().forEach(function(w){ items.push({ kind:'wish', id:w.id, it:w }); });
     return items;
   }
   function mapCardHTML(x){
@@ -2680,17 +2707,16 @@
     if (!b || b.dataset.side === ui.side) return;
     ui.side = b.dataset.side;
     render();
+    // 달력은 이번 달이 맨 아래라서 아래까지 내려 둔다
+    window.scrollTo(0, ui.side === 'calendar' ? document.documentElement.scrollHeight : 0);
   });
   $('#fd-list').addEventListener('click', function(e){
     var c = e.target.closest('[data-open]');
     if (c) { openDetail(c.dataset.open); return; }
-    var wc = e.target.closest('[data-wish]');
-    if (wc) openWishDetail(wc.dataset.wish);
+    var day = e.target.closest('[data-day]');
+    if (day) openDay(day.dataset.day);
   });
-  $('#fd-add').addEventListener('click', function(){
-    if (ui.side === 'wishes') openWishForm(null);
-    else openVisitForm({ mode:'new' });
-  });
+  $('#fd-add').addEventListener('click', function(){ openVisitForm({ mode:'new' }); });
   $('#fd-menu-btn').addEventListener('click', openMenu);
   $('#fd-map-btn').addEventListener('click', openMap);
   window.addEventListener('pagehide', finishPendingDelete);
