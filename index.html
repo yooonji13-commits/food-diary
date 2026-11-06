@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>먹보일기</title>
-<meta name="description" content="사진, 먹은 메뉴, 한줄평, 별점으로 남기는 나만의 맛집 기록">
+<meta name="description" content="사진, 별점, 같이 간 사람으로 남기는 나만의 맛집 기록">
 <meta name="theme-color" content="#FFFBF2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1713,12 +1713,6 @@
       '<div class="fd-field"><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
       '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
         '<span class="fd-rate-word">' + esc(RATE_WORDS[d.rating]) + '</span></div></div>' +
-      '<div class="fd-field"><label class="fd-label" for="fd-ed-one">한줄평</label>' +
-        '<input class="fd-input" id="fd-ed-one" data-f="oneLiner" value="' + esc(d.oneLiner) + '" placeholder="한마디로 어땠나요?" maxlength="60" autocomplete="off">' +
-        '<div class="fd-counter" id="fd-ed-one-count">' + d.oneLiner.length + ' / 60</div></div>' +
-      '<div class="fd-field"><label class="fd-label">먹은 메뉴 <small>메뉴마다 별점도 남길 수 있어요</small></label>' +
-        '<div class="fd-menus" id="fd-ed-menus">' + d.menus.map(menuEditHTML).join('') + '</div>' +
-        '<button type="button" class="fd-add-line fd-press" data-act="add-menu" style="margin-top:8px">🥢 메뉴 추가</button></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-with">같이 간 사람</label>' +
         '<input class="fd-input" id="fd-ed-with" data-f="companions" value="' + esc(d.companions) + '" placeholder="예: 엄마, 친구 민지" maxlength="60" autocomplete="off"></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모</label>' +
@@ -1811,12 +1805,17 @@
   // 가고 싶은 곳을 가게 p(새 사본)에 붙인다.
   //  - 링크는 links 끝에 (이미 있으면 붙이지 않는다)
   //  - 메모는 가게 memo 끝에 줄을 바꿔 (비어 있지 않을 때만)
+  //  - 먹어 보고 싶은 메뉴는 "먹어 보고 싶던 메뉴: …" 한 줄로 가게 memo 끝에 (먹은 메뉴 칸이 없어서 잃지 않게)
   //  - fromWishIds에 가고 싶은 곳 id
   //  - isNew일 때만(새 가게이고 폼에서 위치를 건드리지 않았을 때): 위치가 비어 있으면 가고 싶은 곳의 위치
   function applyWish(p, w, isNew){
     p = clone(p);
     if (w.link && p.links.indexOf(w.link) === -1) p.links.push(w.link);
     if (w.memo) p.memo = p.memo ? p.memo + '\n' + w.memo : w.memo;
+    if (w.wantMenus.length) {
+      var wm = '먹어 보고 싶던 메뉴: ' + w.wantMenus.join(', ');
+      p.memo = p.memo ? p.memo + '\n' + wm : wm;
+    }
     if (p.fromWishIds.indexOf(w.id) === -1) p.fromWishIds.push(w.id);
     if (isNew && !p.location && w.location) p.location = clone(w.location);
     return normalizePlace(p);
@@ -1830,15 +1829,13 @@
     if (mode === 'edit' && !srcVisit) { toast('이미 지운 기록이에요'); return; }
     var draft = draftFrom(mode === 'new' ? null : target, srcVisit);
     if (mode === 'add') draft.visitedAt = today();
-    // 가고 싶은 곳에서 "다녀왔어요": 가게 칸은 그 곳의 값, 먹은 메뉴 칸은 먹어 보고 싶은 메뉴 (이름만)
+    // 가고 싶은 곳에서 "다녀왔어요": 가게 칸은 그 곳의 값 (먹어 보고 싶은 메뉴는 저장할 때 가게 메모로)
     var fromWish = mode === 'new' && o.wishId ? findWish(o.wishId) : null;
     if (o.wishId && !fromWish) { toast('이미 지운 기록이에요'); return; }
     if (fromWish) {
       draft.name = fromWish.name; draft.category = fromWish.category; draft.area = fromWish.area;
       draft.location = fromWish.location ? clone(fromWish.location) : null;
-      draft.menus = fromWish.wantMenus.map(function(n){ var m = newMenu(); m.name = n; return m; });
     }
-    if (!draft.menus.length) draft.menus.push(newMenu());
     var startPhotos = draft.photos.slice();
     var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
     var busy = 0;
@@ -1955,7 +1952,6 @@
       dirty = true;
       if (t.dataset.f) {
         draft[t.dataset.f] = t.value;
-        if (t.dataset.f === 'oneLiner') $('#fd-ed-one-count', sheet).textContent = t.value.length + ' / 60';
       } else if (t.dataset.mf) {
         var m = menuOf(t);
         if (m) m[t.dataset.mf] = t.value;
@@ -2043,6 +2039,7 @@
           dirty = true;
           var m2 = newMenu();
           draft.menus.push(m2);
+          if (!menusEl) break;
           menusEl.insertAdjacentHTML('beforeend', menuEditHTML(m2));
           $('[data-mid="' + m2.id + '"] [data-mf="name"]', menusEl).focus();
           break;

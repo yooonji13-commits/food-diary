@@ -21,8 +21,8 @@
       id: string,
       visitedAt: 'YYYY-MM-DD' | '',
       rating: 0..5,                  // 0 = 안 매김
-      oneLiner: string,
-      menus: [{ id: string, name: string, rating: 0..5, note: string }],
+      oneLiner: string,              // 입력 칸 없음, 예전 값만 남는다
+      menus: [{ id: string, name: string, rating: 0..5, note: string }],  // 입력 칸 없음, 예전 값만 남는다
       photos: string[],              // IndexedDB 사진 id, 첫 장이 대표
       companions: string,            // 같이 간 사람 (자유 글)
       memo: string,
