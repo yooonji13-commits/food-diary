@@ -17,6 +17,7 @@
     links: string[],
     memo: string,
     fromWishIds: string[],           // 이 가게가 된 가고 싶은 곳 id들
+    coverPhoto: string,              // 목록 카드 대표 사진으로 고른 사진 id ('' = 자동)
     visits: [{
       id: string,
       visitedAt: 'YYYY-MM-DD' | '',
