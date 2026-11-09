@@ -218,7 +218,8 @@
   input[type="date"].fd-input{ -webkit-appearance:none; appearance:none; display:flex; align-items:center; line-height:48px; }
 
   .fd-photos{ display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
-  .fd-photo-tile{ position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface-alt); }
+  .fd-photo-tile{ position:relative; aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:var(--surface-alt); touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  .fd-photo-tile.on{ box-shadow:0 0 0 3px var(--accent); }
   .fd-photo-tile img{ width:100%; height:100%; object-fit:cover; display:block; }
   .fd-photo-tile .fd-cover{ position:absolute; left:4px; top:4px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:var(--radius-pill); padding:1px 7px; }
   .fd-photo-del{
@@ -540,6 +541,7 @@
       oneLiner: str(v.oneLiner),
       menus: Array.isArray(v.menus) ? v.menus.map(normalizeMenu) : [],
       photos: strList(v.photos),
+      coverPhoto: str(v.coverPhoto),
       companions: str(v.companions),
       memo: str(v.memo),
       createdAt: str(v.createdAt),
@@ -861,8 +863,13 @@
   function placeCover(p){
     var vs = sortedVisits(p), i;
     if (p.coverPhoto) for (i = 0; i < vs.length; i++) if (vs[i].photos.indexOf(p.coverPhoto) !== -1) return { id:p.coverPhoto, v:vs[i] };
-    for (i = 0; i < vs.length; i++) if (vs[i].photos.length) return { id:vs[i].photos[0], v:vs[i] };
+    for (i = 0; i < vs.length; i++) if (vs[i].photos.length) return { id:visitCover(vs[i]), v:vs[i] };
     return null;
+  }
+  // 방문의 대표 사진: 폼에서 두 번 눌러 고른 사진(coverPhoto)이 아직 있으면 그것, 아니면 첫 장. 사진 순서는 바꾸지 않는다
+  function visitCover(v){
+    if (v.coverPhoto && v.photos.indexOf(v.coverPhoto) !== -1) return v.coverPhoto;
+    return v.photos[0] || '';
   }
   function lastVisitedAt(p){ var v = latestVisit(p); return v ? v.visitedAt : ''; }
   // 다녀온 곳 검색 범위: 가게 이름·지역·종류·메모·주소 + 모든 방문의 메뉴 이름·한마디·한줄평·메모
@@ -984,7 +991,7 @@
       if (!list) { h += '<div class="fd-cal-day">' + num + '</div>'; continue; }
       var pv = null;
       list.forEach(function(x){ if (!pv && x.v.photos.length) pv = x.v; });
-      var dot = pv ? '<img data-pid="' + esc(pv.photos[0]) + '" alt="">' : catEmoji(list[0].p.category);
+      var dot = pv ? '<img data-pid="' + esc(visitCover(pv)) + '" alt="">' : catEmoji(list[0].p.category);
       h += '<button type="button" class="fd-cal-day has fd-press" data-day="' + key + '" aria-label="' + m + '월 ' + d + '일 ' + list.length + '곳">' + num +
         '<span class="fd-cal-dot">' + dot + (list.length > 1 ? '<span class="fd-cal-n">' + list.length + '</span>' : '') + '</span></button>';
     }
@@ -1767,9 +1774,9 @@
       '<div class="fd-row">' + starsIn(m.rating, 'sm') + '</div>' +
     '</div>';
   }
-  function photoTileHTML(id, i){
-    return '<div class="fd-photo-tile" data-photo="' + esc(id) + '"><img data-pid="' + esc(id) + '" alt="">' +
-      (i === 0 ? '<span class="fd-cover">대표</span>' : '') +
+  function photoTileHTML(id, isCover){
+    return '<div class="fd-photo-tile' + (isCover ? ' on' : '') + '" data-photo="' + esc(id) + '"><img data-pid="' + esc(id) + '" alt="">' +
+      (isCover ? '<span class="fd-cover">대표</span>' : '') +
       '<button type="button" class="fd-photo-del" data-act="del-photo" aria-label="사진 빼기">✕</button></div>';
   }
   function catPickHTML(cur){
@@ -1794,7 +1801,7 @@
       '</div>';
     }
     html +=
-      '<div class="fd-field"><label class="fd-label">사진 <small>첫 사진이 대표 사진이 돼요 · 누르면 대표로</small></label>' +
+      '<div class="fd-field"><label class="fd-label">사진 <small>두 번 누르면 대표 사진이 돼요</small></label>' +
         '<div class="fd-photos" id="fd-ed-photos"></div></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-date">방문한 날</label><input class="fd-input" id="fd-ed-date" type="date" data-f="visitedAt" value="' + esc(d.visitedAt) + '"></div>' +
       '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
@@ -1813,10 +1820,10 @@
 
   // 입력 폼은 가게 필드와 방문 필드를 한 장의 draft로 다룬다
   var PLACE_FORM_FIELDS = ['name', 'category', 'area', 'revisit'];
-  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'companions', 'memo'];
+  var VISIT_FORM_FIELDS = ['visitedAt', 'rating', 'oneLiner', 'menus', 'photos', 'coverPhoto', 'companions', 'memo'];
   function draftFrom(place, visit){
     // location은 새 가게를 쓸 때만 쓴다 (이미 있는 가게의 위치는 가게 정보 고치기에서 바꾼다)
-    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], companions:'', memo:'' };
+    var d = { name:'', category:'', area:'', location:null, revisit:'', visitedAt:place ? '' : today(), rating:0, oneLiner:'', menus:[], photos:[], coverPhoto:'', companions:'', memo:'' };
     if (place) PLACE_FORM_FIELDS.forEach(function(k){ d[k] = clone(place[k]); });
     if (visit) VISIT_FORM_FIELDS.forEach(function(k){ d[k] = clone(visit[k]); });
     return d;
@@ -1924,6 +1931,7 @@
     }
     var startPhotos = draft.photos.slice();
     var added = [];   // 이번에 새로 넣은 사진 — 취소하면 지운다
+    var lastTap = { id:'', t:0 };   // 사진 두 번 누르기 확인용
     var busy = 0;
     var dirty = false;
     var TITLES = { 'new':'새 맛집 기록', add:'또 다녀왔어요', edit:'방문 고치기' };
@@ -1943,7 +1951,8 @@
     var wishKey = '', wishChosenKey = '', wishDismissedKey = '';
 
     function drawPhotos(){
-      photosEl.innerHTML = draft.photos.map(photoTileHTML).join('') +
+      var cov = visitCover(draft);
+      photosEl.innerHTML = draft.photos.map(function(id){ return photoTileHTML(id, id === cov); }).join('') +
         (draft.photos.length + busy < MAX_PHOTOS
           ? '<button type="button" class="fd-photo-add fd-press" data-act="add-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>' +
             (draft.photos.length ? draft.photos.length + ' / ' + MAX_PHOTOS : '사진 추가') + '</button>'
@@ -2102,9 +2111,13 @@
       var act = t.closest('[data-act]');
       if (!act) {
         var tile = t.closest('[data-photo]');
-        if (tile) {
-          var idx = draft.photos.indexOf(tile.dataset.photo);
-          if (idx > 0) { dirty = true; draft.photos.unshift(draft.photos.splice(idx, 1)[0]); drawPhotos(); }
+        // 같은 사진을 빠르게 두 번 누르면 대표 사진. 사진 순서는 그대로 둔다
+        if (tile && draft.photos.indexOf(tile.dataset.photo) !== -1) {
+          var tid = tile.dataset.photo, tnow = Date.now();
+          if (lastTap.id === tid && tnow - lastTap.t < 450) {
+            lastTap = { id:'', t:0 };
+            if (visitCover(draft) !== tid) { dirty = true; draft.coverPhoto = tid; drawPhotos(); toast('대표 사진으로 골랐어요'); }
+          } else lastTap = { id:tid, t:tnow };
         }
         return;
       }
@@ -2142,6 +2155,7 @@
           dirty = true;
           var pid = act.closest('[data-photo]').dataset.photo;
           draft.photos = draft.photos.filter(function(x){ return x !== pid; });
+          if (draft.coverPhoto === pid) draft.coverPhoto = '';
           drawPhotos();
           break;
       }

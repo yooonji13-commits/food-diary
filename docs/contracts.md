@@ -24,7 +24,8 @@
       rating: 0..5,                  // 0 = 안 매김
       oneLiner: string,              // 입력 칸 없음, 예전 값만 남는다
       menus: [{ id: string, name: string, rating: 0..5, note: string }],  // 입력 칸 없음, 예전 값만 남는다
-      photos: string[],              // IndexedDB 사진 id, 첫 장이 대표
+      photos: string[],              // IndexedDB 사진 id (순서는 넣은 순서 그대로)
+      coverPhoto: string,            // 방문 대표 사진 id ('' 또는 photos에 없으면 첫 장)
       companions: string,            // 같이 간 사람 (자유 글)
       memo: string,
       createdAt: ISO문자열, updatedAt: ISO문자열
