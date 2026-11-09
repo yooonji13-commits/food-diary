@@ -303,6 +303,7 @@
   .fd-viewer-track div{ flex:none; width:100%; height:100%; scroll-snap-align:center; display:grid; place-items:center; }
   .fd-viewer-track img{ max-width:100%; max-height:100%; object-fit:contain; }
   .fd-viewer-close{ position:absolute; right:12px; top:calc(env(safe-area-inset-top) + 10px); width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.18); color:#fff; font-size:18px; }
+  .fd-viewer-place{ position:absolute; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 24px); max-width:calc(100% - 32px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:11px 18px; border-radius:var(--radius-pill); background:rgba(255,255,255,.18); color:#fff; font-size:15px; font-weight:700; }
   .fd-viewer-count{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 20px); text-align:center; color:#fff; font-size:14px; pointer-events:none; }
 
   /* ---- action sheet ---- */
@@ -922,7 +923,7 @@
       '<div class="fd-thumb">' + thumb + '</div>' +
       '<div class="fd-card-body">' +
         '<div class="fd-card-top"><span class="fd-card-title">' + esc(p.name || '이름 없는 가게') + '</span>' +
-          (p.revisit === 'yes' ? '<span class="fd-again">또 갈래요</span>' : '') + '</div>' +
+          '</div>' +
         (sub ? '<div class="fd-card-sub">' + sub + '</div>' : '') +
         '<div class="fd-card-meta">' + meta + '</div>' +
         (v.oneLiner ? '<div class="fd-card-quote">' + esc(v.oneLiner) + '</div>' : '') +
@@ -1012,11 +1013,22 @@
     el.innerHTML = html;
     hydrateImgs(el);
   }
-  // 날짜를 누르면: 한 곳이면 바로 그 가게, 여러 곳이면 고르게 한다
+  // 날짜를 누르면: 사진이 있으면 그날 사진을 크게 띄우고 대표 사진(동그라미와 같은 사진)부터 보여 준다.
+  // 그날 방문들의 사진을 방문 순서·사진 순서 그대로 넘겨 볼 수 있고, 아래 가게 이름을 누르면 그 가게 화면.
+  // 사진이 하나도 없으면: 한 곳이면 바로 그 가게, 여러 곳이면 고르게 한다
   function openDay(key){
     var list = visitsByDay()[key] || [];
-    if (list.length === 1) { openDetail(list[0].p.id); return; }
     if (!list.length) return;
+    var ids = [], owners = [], start = -1;
+    list.forEach(function(x){
+      if (start === -1 && x.v.photos.length) start = ids.length + x.v.photos.indexOf(visitCover(x.v));
+      x.v.photos.forEach(function(id){ ids.push(id); owners.push(x.p); });
+    });
+    if (ids.length) {
+      openViewer(ids, start, function(i){ return owners[i]; });
+      return;
+    }
+    if (list.length === 1) { openDetail(list[0].p.id); return; }
     openActionSheet(fmtDate(key), '', list.map(function(x){
       return { icon:catEmoji(x.p.category), label:x.p.name || '이름 없는 가게', sub:x.v.rating ? '★ ' + x.v.rating : '',
         run:function(){ openDetail(x.p.id); } };
@@ -1150,13 +1162,9 @@
     var html = '<div class="fd-place-head"><div class="fd-place-emoji">' + catEmoji(p.category) + '</div><div class="fd-place-name">' +
       '<h1 class="fd-detail-title">' + esc(p.name || '이름 없는 가게') + '</h1>' +
       (meta ? '<div class="fd-detail-meta">' + meta + '</div>' : '') + locDetailHTML(p) + '</div></div>';
-    html += '<div class="fd-place-revisit">' + revisitToggleHTML(p.revisit, function(v){ return 'data-act="revisit" data-val="' + v + '"'; }) + '</div>';
-    html += coverPickHTML(p);
+    // 또 갈래요 바꾸기·목록 대표 사진 고르기·가게 정보 고치기·또 다녀왔어요는 사용자 요청으로 화면에서 뺐다 (저장된 값은 그대로)
     if (p.links.length) html += '<div class="fd-section-title">🔗 링크</div><div class="fd-links">' + p.links.map(linkHTML).join('') + '</div>';
     if (p.memo) html += '<div class="fd-section-title">🏠 가게 메모</div><div class="fd-memo">' + esc(p.memo) + '</div>';
-    html += '<div class="fd-detail-actions">' +
-      '<button class="fd-btn-soft fd-press" data-act="edit-place">🏠 가게 정보 고치기</button>' +
-      '<button class="fd-btn-primary fd-press" data-act="add-visit">또 다녀왔어요</button></div>';
     html += '<div class="fd-section-title">🍽️ 방문 기록 ' + p.visits.length + '번</div>';
     html += p.visits.length ? sortedVisits(p).map(visitHTML).join('') : '<div class="fd-memo">아직 방문 기록이 없어요</div>';
     html += '<button class="fd-danger-btn fd-press" data-act="delete-place">가게 지우기</button>';
@@ -1343,21 +1351,29 @@
     removeVisit(placeId, vid);
   }
 
-  function openViewer(ids, start){
+  // placeOf(i): 있으면 i번째 사진의 가게. 아래에 가게 이름 단추를 띄우고 누르면 그 가게 화면을 연다 (달력에서)
+  function openViewer(ids, start, placeOf){
     var el = document.createElement('div');
     el.className = 'fd-viewer';
     el.innerHTML = '<div class="fd-viewer-track">' + ids.map(function(id){
       return '<div><img data-pid="' + esc(id) + '" data-kind="full" alt=""></div>';
-    }).join('') + '</div><div class="fd-viewer-count"></div><button class="fd-viewer-close" aria-label="닫기">✕</button>';
+    }).join('') + '</div><div class="fd-viewer-count"></div><button class="fd-viewer-close" aria-label="닫기">✕</button>' +
+      (placeOf ? '<button class="fd-viewer-place"></button>' : '');
     document.body.appendChild(el);
     lock();
     hydrateImgs(el);
-    var track = $('.fd-viewer-track', el), count = $('.fd-viewer-count', el);
-    function upd(){ count.textContent = ids.length > 1 ? (Math.round(track.scrollLeft / track.clientWidth) + 1) + ' / ' + ids.length : ''; }
+    var track = $('.fd-viewer-track', el), count = $('.fd-viewer-count', el), placeBtn = $('.fd-viewer-place', el);
+    function cur(){ return Math.max(0, Math.min(ids.length - 1, Math.round(track.scrollLeft / track.clientWidth))); }
+    function upd(){
+      count.textContent = ids.length > 1 ? (cur() + 1) + ' / ' + ids.length : '';
+      if (placeBtn) { var p = placeOf(cur()); placeBtn.textContent = catEmoji(p.category) + ' ' + (p.name || '이름 없는 가게') + ' ›'; }
+    }
+    function close(){ el.remove(); unlock(); }
     track.scrollLeft = start * track.clientWidth;
     upd();
     track.addEventListener('scroll', upd, { passive:true });
-    $('.fd-viewer-close', el).addEventListener('click', function(){ el.remove(); unlock(); });
+    $('.fd-viewer-close', el).addEventListener('click', close);
+    if (placeBtn) placeBtn.addEventListener('click', function(){ var p = placeOf(cur()); close(); openDetail(p.id); });
   }
 
   // ---------- 같은 가게 알아보기 ----------
@@ -1810,11 +1826,7 @@
         '<input class="fd-input" id="fd-ed-with" data-f="companions" value="' + esc(d.companions) + '" placeholder="예: 엄마, 친구 민지" maxlength="60" autocomplete="off"></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모</label>' +
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
-    // 또 갈래요는 새 방문을 쓸 때만. 옛 방문을 고칠 때 지금 마음이 덮이면 안 된다
-    if (mode !== 'edit') {
-      html += '<div class="fd-field"><label class="fd-label">다시 갈까요?</label><div id="fd-ed-revisit">' +
-        revisitToggleHTML(d.revisit, function(v){ return 'data-revisit="' + v + '"'; }) + '</div></div>';
-    }
+    // 또 갈래요 칸은 사용자 요청으로 뺐다. revisit은 가게에 저장된 값 그대로 이어진다
     return html;
   }
 
