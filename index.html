@@ -1013,19 +1013,18 @@
     el.innerHTML = html;
     hydrateImgs(el);
   }
-  // 날짜를 누르면: 사진이 있으면 그날 사진을 크게 띄우고 대표 사진(동그라미와 같은 사진)부터 보여 준다.
+  // 날짜를 누르면: 사진이 있으면 그날 사진을 크게 띄우고 첫 사진부터 보여 준다.
   // 그날 방문들의 사진을 방문 순서·사진 순서 그대로 넘겨 볼 수 있고, 아래 가게 이름을 누르면 그 가게 화면.
   // 사진이 하나도 없으면: 한 곳이면 바로 그 가게, 여러 곳이면 고르게 한다
   function openDay(key){
     var list = visitsByDay()[key] || [];
     if (!list.length) return;
-    var ids = [], owners = [], start = -1;
+    var ids = [], owners = [];
     list.forEach(function(x){
-      if (start === -1 && x.v.photos.length) start = ids.length + x.v.photos.indexOf(visitCover(x.v));
       x.v.photos.forEach(function(id){ ids.push(id); owners.push(x.p); });
     });
     if (ids.length) {
-      openViewer(ids, start, function(i){ return owners[i]; });
+      openViewer(ids, 0, function(i){ return owners[i]; });
       return;
     }
     if (list.length === 1) { openDetail(list[0].p.id); return; }
@@ -1804,7 +1803,7 @@
   function visitFormHTML(d, mode, place){
     var html = '' +
       // 'add'·'edit'에서는 가게 칸 대신 가게 이름만 보인다 ('new'에서 같은 가게를 고르면 이 줄로 바뀐다)
-      '<div class="fd-form-place" id="fd-ed-placehead"' + (mode === 'new' ? ' hidden' : '') + '>' +
+      '<div class="fd-form-place" id="fd-ed-placehead"' + (mode !== 'add' ? ' hidden' : '') + '>' +
         '<span id="fd-ed-placeemoji">' + catEmoji(place ? place.category : '') + '</span><span id="fd-ed-placename">' + esc(place ? place.name || '이름 없는 가게' : '') + '</span></div>';
     if (mode === 'new') {
       html += '<div id="fd-ed-placebox">' +
@@ -1815,6 +1814,12 @@
         '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
         '<div class="fd-field"><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
       '</div>';
+    }
+    // 고치기에서는 가게 이름과 종류(음식 아이콘)도 바꿀 수 있다. 저장하면 그 가게의 값이 바뀐다
+    if (mode === 'edit') {
+      html += '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-ed-pname">가게 이름</label>' +
+          '<input class="fd-input big" id="fd-ed-pname" data-f="name" value="' + esc(d.name) + '" placeholder="가게 이름" maxlength="40" autocomplete="off"></div>' +
+        '<div class="fd-field"><label class="fd-label">종류 <small>목록·달력의 음식 아이콘</small></label>' + catPickHTML(d.category) + '</div>';
     }
     html +=
       '<div class="fd-field"><label class="fd-label">사진 <small>두 번 누르면 대표 사진이 돼요</small></label>' +
@@ -1875,7 +1880,13 @@
       if (!visit) return { error:'이미 지운 기록이에요' };
     }
     var wish = wishId && !visitId ? findWish(wishId) : null;   // 그사이 지워졌으면 방문만 저장한다
-    if (cur) {
+    if (cur && visitId && d.editPlace) {
+      // 고치기에서 바꾼 가게 이름·종류. 이름은 앞뒤 공백만 다르면 저장된 그대로 둔다
+      var nm = d.name.trim();
+      d.name = !nm || nm === cur.name.trim() ? cur.name : nm;
+      d.area = cur.area;
+      d.revisit = cur.revisit;
+    } else if (cur) {
       d.name = cur.name; d.category = cur.category; d.area = cur.area;
       if (visitId) d.revisit = cur.revisit;
       if (!visitId && !draftHasVisit(d)) return { error:'방문 내용을 하나라도 적어 주세요' };
@@ -2232,6 +2243,12 @@
       out.name = out.name.trim();
       out.area = out.area.trim();
       if (mode === 'edit') {
+        if (!out.name) {
+          toast('가게 이름을 적어 주세요');
+          $('#fd-ed-pname', sheet).focus();
+          return;
+        }
+        out.editPlace = true;
         // 옛 방문 고치기: 손대지 않은 값은 저장된 그대로 둔다. 바꾼 칸만 공백을 정리한다
         if (out.oneLiner !== srcVisit.oneLiner) out.oneLiner = out.oneLiner.trim();
         if (out.companions !== srcVisit.companions) out.companions = out.companions.trim();
