@@ -71,6 +71,7 @@
     width:40px; height:40px; border-radius:50%; background:var(--surface);
     box-shadow:var(--shadow); display:grid; place-items:center; flex:none;
   }
+  .fd-icon-btn{ color:var(--ink); }
   .fd-icon-btn svg{ width:20px; height:20px; }
 
   .fd-search{
@@ -78,7 +79,7 @@
     background:var(--surface); border-radius:var(--radius-pill); padding:0 14px; height:46px;
     box-shadow:var(--shadow);
   }
-  .fd-search svg{ width:18px; height:18px; color:var(--muted); flex:none; }
+  .fd-search svg{ width:18px; height:18px; color:var(--ink-soft); flex:none; }
   .fd-search input{ flex:1; min-width:0; border:0; outline:0; background:none; height:100%; }
   .fd-search input::placeholder{ color:var(--muted); }
   .fd-search input::-webkit-search-cancel-button{ display:none; }
@@ -230,7 +231,9 @@
     aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed #DCC7AE; background:var(--surface);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; color:var(--muted); font-size:12px;
   }
-  .fd-photo-add svg{ width:24px; height:24px; color:var(--accent); }
+  .fd-photo-add svg{ width:24px; height:24px; color:#8A5526; }
+  /* 음식 종류 이모지를 또렷하게: 사진(img)이 든 칸에는 걸지 않는다 */
+  .fd-thumb:not(:has(img)), .fd-cal-dot:not(:has(img)), .fd-place-emoji, .fd-action span:first-child, .fd-pin > span, #fd-ed-placeemoji{ filter:saturate(1.45) contrast(1.12); }
   .fd-spinner{ width:22px; height:22px; border-radius:50%; border:2.5px solid var(--line); border-top-color:var(--accent); animation:fd-spin .8s linear infinite; margin:auto; position:absolute; inset:0; }
   .fd-hint{ font-size:12px; color:var(--muted); margin:6px 2px 0; }
 
@@ -359,6 +362,14 @@
   .fd-mini-btn.danger{ color:var(--danger); }
 
   /* ---- same place notice ---- */
+  .fd-suggest{ display:flex; flex-direction:column; gap:6px; }
+  .fd-suggest:not(:empty){ margin-top:8px; }
+  .fd-suggest-item{ display:flex; align-items:center; gap:10px; width:100%; min-width:0; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:9px 14px; animation:fd-rise .15s ease both; }
+  .fd-suggest-item > span:first-child{ font-size:20px; flex:none; filter:saturate(1.45) contrast(1.12); }
+  .fd-suggest-item > span:last-child{ min-width:0; }
+  .fd-suggest-item strong, .fd-suggest-item small{ display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fd-suggest-item strong{ font-size:15px; }
+  .fd-suggest-item small{ font-size:12.5px; color:var(--muted); margin-top:1px; }
   .fd-same{ margin-top:10px; background:var(--accent-soft); border-radius:var(--radius-md); padding:12px; animation:fd-rise .2s ease both; }
   .fd-same b{ display:block; font-size:14.5px; color:var(--accent); }
   .fd-same p{ margin:2px 0 4px; font-size:13px; color:var(--ink-soft); }
@@ -513,7 +524,7 @@
     <button type="button" data-side="calendar" role="tab">달력</button>
   </div>
   <label class="fd-search">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="fd-q" type="search" placeholder="가게, 메뉴, 지역으로 찾기" autocomplete="off" enterkeyhint="search">
     <button class="fd-clear" id="fd-q-clear" type="button" hidden>지우기</button>
   </label>
@@ -530,7 +541,7 @@
   </div>
   <main class="fd-list" id="fd-list"></main>
 </div>
-<button class="fd-fab" id="fd-add"><span id="fd-add-label">일기 기록하기</span></button>
+<button class="fd-fab" id="fd-add"><span id="fd-add-label">기록하기</span></button>
 <input type="file" id="fd-photo-input" accept="image/*" multiple hidden>
 <input type="file" id="fd-import-input" accept="application/json,.json" hidden>
 <div class="fd-toast" id="fd-toast"><span></span><button type="button" hidden></button></div>
@@ -1903,8 +1914,7 @@
       html += '<div id="fd-ed-placebox">' +
         '<div class="fd-field" style="margin-top:8px"><label class="fd-label" for="fd-ed-name">가게 이름</label>' +
           '<input class="fd-input big" id="fd-ed-name" data-f="name" value="' + esc(d.name) + '" placeholder="어디서 먹었나요?" maxlength="40" autocomplete="off">' +
-          '<div id="fd-ed-same"></div><div id="fd-ed-wish"></div></div>' +
-        '<div id="fd-ed-location">' + locPickerHTML() + '</div>' +
+          '<div id="fd-ed-suggest" class="fd-suggest"></div><div id="fd-ed-same"></div><div id="fd-ed-wish"></div></div>' +
         '<div class="fd-field"><label class="fd-label">종류</label>' + catPickHTML(d.category) + '</div>' +
         '<div class="fd-field"><label class="fd-label" for="fd-ed-area">지역</label><input class="fd-input" id="fd-ed-area" data-f="area" value="' + esc(d.area) + '" placeholder="예: 성수동" maxlength="30" autocomplete="off"></div>' +
       '</div>';
@@ -1922,7 +1932,7 @@
       '<div class="fd-field"><label class="fd-label">별점</label><div class="fd-rate" id="fd-ed-rate">' + starsIn(d.rating) +
         '<span class="fd-rate-word">' + esc(RATE_WORDS[d.rating]) + '</span></div></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-with">같이 간 사람</label>' +
-        '<input class="fd-input" id="fd-ed-with" data-f="companions" value="' + esc(d.companions) + '" placeholder="예: 엄마, 친구 민지" maxlength="60" autocomplete="off"></div>' +
+        '<input class="fd-input" id="fd-ed-with" data-f="companions" value="' + esc(d.companions) + '" placeholder="" maxlength="60" autocomplete="off"></div>' +
       '<div class="fd-field"><label class="fd-label" for="fd-ed-memo">메모</label>' +
         '<textarea class="fd-textarea" id="fd-ed-memo" data-f="memo" maxlength="1000" placeholder="자유롭게 남겨 두세요">' + esc(d.memo) + '</textarea></div>';
     // 또 갈래요 칸은 사용자 요청으로 뺐다. revisit은 가게에 저장된 값 그대로 이어진다
@@ -2071,7 +2081,7 @@
       var cov = visitCover(draft);
       photosEl.innerHTML = draft.photos.map(function(id){ return photoTileHTML(id, id === cov); }).join('') +
         (draft.photos.length + busy < MAX_PHOTOS
-          ? '<button type="button" class="fd-photo-add fd-press" data-act="add-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>' +
+          ? '<button type="button" class="fd-photo-add fd-press" data-act="add-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>' +
             (draft.photos.length ? draft.photos.length + ' / ' + MAX_PHOTOS : '사진 추가') + '</button>'
           : '');
       for (var i = 0; i < busy; i++) photosEl.insertAdjacentHTML('beforeend', '<div class="fd-photo-tile"><div class="fd-spinner"></div></div>');
@@ -2102,6 +2112,20 @@
       }
     });
 
+    // 새 가게 이름을 치는 동안, 이름에 같은 글자가 든 다녀온 곳을 아래에 띄운다. 누르면 그 가게의 새 방문으로 바뀐다.
+    // 목록 칸만 바꾸고 입력칸은 건드리지 않는다
+    var suggestEl = $('#fd-ed-suggest', sheet);
+    function drawSuggest(){
+      if (!suggestEl) return;
+      var q = mode === 'new' ? normName(draft.name) : '';
+      var list = !q ? [] : state.places.filter(function(p){ return normName(p.name).indexOf(q) !== -1; })
+        .sort(function(a, b){ return (normName(b.name).indexOf(q) === 0) - (normName(a.name).indexOf(q) === 0); }).slice(0, 5);
+      suggestEl.innerHTML = list.map(function(p){
+        var meta = [p.area || (p.location && p.location.address) || '', p.category].filter(Boolean).map(esc).join(' · ');
+        return '<button type="button" class="fd-suggest-item fd-press" data-same-pick="' + esc(p.id) + '"><span>' + catEmoji(p.category) + '</span><span><strong>' +
+          esc(p.name) + '</strong>' + (meta ? '<small>' + meta + '</small>' : '') + '</span></button>';
+      }).join('');
+    }
     function formCand(){ return { name:draft.name, location:draft.location }; }
     // 새 가게 이름에서 손을 떼거나 위치를 고르면 같은 가게가 있는지 본다. 알림 칸만 바꾼다
     function checkSame(){
@@ -2164,6 +2188,7 @@
       dirty = true;
       if (t.dataset.f) {
         draft[t.dataset.f] = t.value;
+        if (t.id === 'fd-ed-name') drawSuggest();
       } else if (t.dataset.mf) {
         var m = menuOf(t);
         if (m) m[t.dataset.mf] = t.value;
@@ -2952,7 +2977,7 @@
     return s;
   }
   function pxSVG(w, h, inner){ return '<svg class="fd-px" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg>'; }
-  var PIG_PAL = { B:'#F4A3B5', E:'#E07A95', S:'#EA8BA2', N:'#A94E68', K:'#3B2E25', L:'#E07A95', M:'#A94E68', W:'#FFFFFF' };
+  var PIG_PAL = { B:'#EC8AA3', E:'#CF5A7B', S:'#DE6E8D', N:'#8A3050', K:'#2A1F18', L:'#CF5A7B', M:'#8A3050', W:'#FFFFFF' };
   // 앞을 보는 돼지 14×11칸. 다리는 두 모양(fa, fb)을 번갈아 보여 쫑쫑 걷는다. 먹을 때(yum)는 눈이 ^ ^, 입이 벌어진다
   function pigSVG(){
     var body = [
@@ -2975,9 +3000,9 @@
       '<g class="fa">' + pxRects(fa, PIG_PAL) + '</g><g class="fb">' + pxRects(fb, PIG_PAL) + '</g>');
   }
   var PX_FOOD = {
-    rice:  { pal:{ O:'#CBBFAE', W:'#FFFFFF', D:'#3E4A3D' }, rows:['..OO..', '.OWWO.', 'OWWWWO', 'OWDDWO', 'OODDOO'] },
-    pizza: { pal:{ C:'#C98A4B', Y:'#FFD15C', R:'#D9483B' }, rows:['CCCCCC', 'YRYYYY', 'YYYYRY', '.YRYY.', '..YY..'] },
-    chicken: { pal:{ B:'#D98A3D', b:'#B5652A', W:'#E6D7BD' }, rows:['.BBB..', 'BBBBB.', 'BBBbB.', '.BbBW.', '...WWW', '....WW'] }
+    rice:  { pal:{ O:'#8F7D66', W:'#FFFFFF', D:'#1F2A22' }, rows:['..OO..', '.OWWO.', 'OWWWWO', 'OWDDWO', 'OODDOO'] },
+    pizza: { pal:{ C:'#A9662A', Y:'#F5B521', R:'#C42E1D' }, rows:['CCCCCC', 'YRYYYY', 'YYYYRY', '.YRYY.', '..YY..'] },
+    chicken: { pal:{ B:'#C76E1C', b:'#8E4813', W:'#D8C29C' }, rows:['.BBB..', 'BBBBB.', 'BBBbB.', '.BbBW.', '...WWW', '....WW'] }
   };
 
   // 시작 화면: 도트 돼지가 2초 동안 왼쪽에서 오른쪽으로 쫑쫑 걸으며 바닥 음식을 주워 먹는다. 누르면 바로 넘어간다.
