@@ -436,16 +436,16 @@
   .fd-splash-floor{ position:absolute; left:24px; right:24px; bottom:6px; height:3px; border-radius:3px; background:var(--line); }
   /* 도트(픽셀) 그림. 칸 하나가 사각형 하나라 흐려지지 않게 crispEdges */
   .fd-px{ display:block; shape-rendering:crispEdges; overflow:visible; }
-  .fd-splash-food{ position:absolute; bottom:9px; width:24px; height:24px; transform:translateX(-50%); }
+  .fd-splash-food{ position:absolute; bottom:9px; width:30px; height:30px; transform:translateX(-50%); }
   .fd-splash-food.eaten{ animation:fd-eaten .4s steps(4) forwards; }
   @keyframes fd-eaten{ 0%{ transform:translateX(-50%); } 50%{ transform:translateX(-50%) translateY(-8px) scale(.7); } 100%{ opacity:0; transform:translateX(-50%) translateY(-4px) scale(0); } }
-  .fd-yum{ position:absolute; bottom:84px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
+  .fd-yum{ position:absolute; bottom:72px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
   @keyframes fd-yum{ from{ opacity:0; transform:translateX(-50%) translateY(6px); } 25%{ opacity:1; } to{ opacity:0; transform:translateX(-50%) translateY(-18px); } }
-  /* 돼지: 2.4초 동안 한 칸씩 쫑쫑 뛰듯 걸어간다 (다리 두 모양을 번갈아, 몸은 위아래로 톡톡) */
-  .fd-pig{ position:absolute; left:0; bottom:8px; width:84px; height:66px; animation:fd-pig-walk 2.4s linear forwards; }
-  @keyframes fd-pig-walk{ from{ transform:translateX(-100px); } to{ transform:translateX(calc(100vw + 10px)); } }
+  /* 돼지: 2.8초 동안 한 칸씩 쫑쫑 뛰듯 걸어간다 (다리 두 모양을 번갈아, 몸은 위아래로 톡톡) */
+  .fd-pig{ position:absolute; left:0; bottom:8px; width:70px; height:55px; animation:fd-pig-walk 2.8s linear forwards; }
+  @keyframes fd-pig-walk{ from{ transform:translateX(-90px); } to{ transform:translateX(calc(100vw + 10px)); } }
   .fd-pig svg{ width:100%; height:100%; animation:fd-pig-hop .3s steps(1) infinite; }
-  @keyframes fd-pig-hop{ 0%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+  @keyframes fd-pig-hop{ 0%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   .fd-pig .fa{ animation:fd-px-a .6s steps(1) infinite; }
   .fd-pig .fb{ animation:fd-px-b .6s steps(1) infinite; }
   @keyframes fd-px-a{ 0%{ opacity:1; } 50%{ opacity:0; } }
@@ -2980,7 +2980,7 @@
     berry: { pal:{ G:'#6FBF5A', R:'#E8485A', Y:'#FFE27A' }, rows:['.GGGG.', 'RRGGRR', 'RYRRYR', 'RRRRRR', '.RYRR.', '..RR..'] }
   };
 
-  // 시작 화면: 도트 돼지가 2.4초 동안 왼쪽에서 오른쪽으로 쫑쫑 걸으며 바닥 음식을 주워 먹는다. 누르면 바로 넘어간다.
+  // 시작 화면: 도트 돼지가 2.8초 동안 왼쪽에서 오른쪽으로 쫑쫑 걸으며 바닥 음식을 주워 먹는다. 누르면 바로 넘어간다.
   // 움직임 줄이기를 켠 기기에서는 띄우지 않는다. 앱은 뒤에서 이미 그려져 있다
   (function splash(){
     var el = $('#fd-splash');
@@ -2997,11 +2997,11 @@
       setTimeout(function(){ el.remove(); }, 260);
     }
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return; }
-    var WALK = 2400, MID = 42, W = window.innerWidth, pig = $('#fd-pig');
-    // 돼지 왼쪽 끝은 -100px에서 W+10px까지 움직인다. 돼지 가운데(코)가 음식 위에 오면 몸을 낮춰 먹고 음식이 사라진다
+    var WALK = 2800, MID = 35, W = window.innerWidth, pig = $('#fd-pig');
+    // 돼지 왼쪽 끝은 -90px에서 W+10px까지 움직인다. 돼지 가운데(코)가 음식 위에 오면 몸을 낮춰 먹고 음식이 사라진다
     $all('.fd-splash-food', el).forEach(function(f){
       var r = f.getBoundingClientRect(), x = r.left + r.width / 2;
-      var at = (x - MID + 100) / (W + 110) * WALK;
+      var at = (x - MID + 90) / (W + 100) * WALK;
       timers.push(setTimeout(function(){
         pig.classList.add('munch');
         f.classList.add('eaten');
