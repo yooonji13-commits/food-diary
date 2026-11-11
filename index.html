@@ -436,7 +436,7 @@
   .fd-splash-floor{ position:absolute; left:24px; right:24px; bottom:6px; height:3px; border-radius:3px; background:var(--line); }
   /* 도트(픽셀) 그림. 칸 하나가 사각형 하나라 흐려지지 않게 crispEdges */
   .fd-px{ display:block; shape-rendering:crispEdges; overflow:visible; }
-  .fd-splash-food{ position:absolute; bottom:9px; width:30px; height:30px; transform:translateX(-50%); }
+  .fd-splash-food{ position:absolute; bottom:9px; width:25px; height:25px; transform:translateX(-50%); }
   .fd-splash-food.eaten{ animation:fd-eaten .4s steps(4) forwards; }
   @keyframes fd-eaten{ 0%{ transform:translateX(-50%); } 50%{ transform:translateX(-50%) translateY(-8px) scale(.7); } 100%{ opacity:0; transform:translateX(-50%) translateY(-4px) scale(0); } }
   .fd-yum{ position:absolute; bottom:64px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
@@ -493,8 +493,8 @@
   <div class="fd-splash-stage">
     <div class="fd-splash-floor"></div>
     <span class="fd-splash-food" style="left:30%" data-px="rice"></span>
-    <span class="fd-splash-food" style="left:55%" data-px="donut"></span>
-    <span class="fd-splash-food" style="left:80%" data-px="berry"></span>
+    <span class="fd-splash-food" style="left:55%" data-px="pizza"></span>
+    <span class="fd-splash-food" style="left:80%" data-px="chicken"></span>
     <div class="fd-pig" id="fd-pig"></div>
   </div>
   <div class="fd-splash-name">먹보일기</div>
@@ -2976,8 +2976,8 @@
   }
   var PX_FOOD = {
     rice:  { pal:{ O:'#CBBFAE', W:'#FFFFFF', D:'#3E4A3D' }, rows:['..OO..', '.OWWO.', 'OWWWWO', 'OWDDWO', 'OODDOO'] },
-    donut: { pal:{ P:'#F08BB0', T:'#D9A066', Y:'#FFE27A' }, rows:['.PPPP.', 'PYPPYP', 'PP..PP', 'TT..TT', 'TTTTTT', '.TTTT.'] },
-    berry: { pal:{ G:'#6FBF5A', R:'#E8485A', Y:'#FFE27A' }, rows:['.GGGG.', 'RRGGRR', 'RYRRYR', 'RRRRRR', '.RYRR.', '..RR..'] }
+    pizza: { pal:{ C:'#C98A4B', Y:'#FFD15C', R:'#D9483B' }, rows:['CCCCCC', 'YRYYYY', 'YYYYRY', '.YRYY.', '..YY..'] },
+    chicken: { pal:{ B:'#D98A3D', b:'#B5652A', W:'#E6D7BD' }, rows:['.BBB..', 'BBBBB.', 'BBBbB.', '.BbBW.', '...WWW', '....WW'] }
   };
 
   // 시작 화면: 도트 돼지가 2초 동안 왼쪽에서 오른쪽으로 쫑쫑 걸으며 바닥 음식을 주워 먹는다. 누르면 바로 넘어간다.
