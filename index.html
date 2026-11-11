@@ -453,7 +453,7 @@
   .fd-yum{ position:absolute; bottom:64px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
   @keyframes fd-yum{ from{ opacity:0; transform:translateX(-50%) translateY(6px); } 25%{ opacity:1; } to{ opacity:0; transform:translateX(-50%) translateY(-18px); } }
   /* 돼지: 2초 동안 한 칸씩 쫑쫑 뛰듯 걸어간다 (다리 두 모양을 번갈아, 몸은 위아래로 톡톡) */
-  .fd-pig{ position:absolute; left:0; bottom:8px; width:60px; height:47px; animation:fd-pig-walk 2s linear forwards; }
+  .fd-pig{ position:absolute; left:0; bottom:8px; width:51px; height:47px; animation:fd-pig-walk 2s linear forwards; }
   @keyframes fd-pig-walk{ from{ transform:translateX(-90px); } to{ transform:translateX(calc(100vw + 10px)); } }
   .fd-pig svg{ width:100%; height:100%; animation:fd-pig-hop .3s steps(1) infinite; }
   @keyframes fd-pig-hop{ 0%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
@@ -2980,25 +2980,27 @@
   var PIG_PAL = { B:'#EC8AA3', E:'#CF5A7B', S:'#DE6E8D', N:'#8A3050', K:'#2A1F18', L:'#CF5A7B', M:'#8A3050', W:'#FFFFFF' };
   // 앞을 보는 돼지 14×11칸. 다리는 두 모양(fa, fb)을 번갈아 보여 쫑쫑 걷는다. 먹을 때(yum)는 눈이 ^ ^, 입이 벌어진다
   function pigSVG(){
+    // 12칸 × 11줄. 몸이 넓적해 보이지 않게 가로를 14칸에서 12칸으로 줄였다
     var body = [
-      '..EE......EE..',
-      '..EEBBBBBBEE..',
-      '.BBBBBBBBBBBB.',
-      'BBBBBBBBBBBBBB',
-      'BBBBBBBBBBBBBB',
-      'BBBBSSSSSSBBBB',
-      'BBBBSNSSNSBBBB',
-      'BBBBSSSSSSBBBB',
-      '.BBBBBBBBBBBB.'
+      '.EE......EE.',
+      '.EEBBBBBBEE.',
+      '.BBBBBBBBBB.',
+      'BBBBBBBBBBBB',
+      'BBBBBBBBBBBB',
+      'BBBSSSSSSBBB',
+      'BBBSNSSNSBBB',
+      'BBBSSSSSSBBB',
+      '.BBBBBBBBBB.'
     ];
-    var open = ['', '', '', '...K......K...', '...K......K...'];
-    var yum = ['', '', '', '...K......K...', '..K.K....K.K..', '', '', '', '......MM......'];
-    var fa = ['', '', '', '', '', '', '', '', '', '.LL.LL..LL.LL.', '.LL.LL..LL.LL.'];
-    var fb = ['', '', '', '', '', '', '', '', '', '.LL.LL..LL.LL.', 'LL.LL....LL.LL'];
-    return pxSVG(14, 11, pxRects(body, PIG_PAL) +
+    var open = ['', '', '', '..K......K..', '..K......K..'];
+    var yum = ['', '', '', '..K......K..', '.K.K....K.K.', '', '', '', '.....MM.....'];
+    var fa = ['', '', '', '', '', '', '', '', '', '.LL.L..L.LL.', '.LL.L..L.LL.'];
+    var fb = ['', '', '', '', '', '', '', '', '', '.LL.L..L.LL.', 'LL.L....L.LL'];
+    return pxSVG(12, 11, pxRects(body, PIG_PAL) +
       '<g class="open">' + pxRects(open, PIG_PAL) + '</g><g class="yum">' + pxRects(yum, PIG_PAL) + '</g>' +
       '<g class="fa">' + pxRects(fa, PIG_PAL) + '</g><g class="fb">' + pxRects(fb, PIG_PAL) + '</g>');
   }
+
   var PX_FOOD = {
     rice:  { pal:{ O:'#8F7D66', W:'#FFFFFF', D:'#1F2A22' }, rows:['..OO..', '.OWWO.', 'OWWWWO', 'OWDDWO', 'OODDOO'] },
     pizza: { pal:{ C:'#A9662A', Y:'#F5B521', R:'#C42E1D' }, rows:['CCCCCC', 'YRYYYY', 'YYYYRY', '.YRYY.', '..YY..'] },
@@ -3022,7 +3024,7 @@
       setTimeout(function(){ el.remove(); }, 260);
     }
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return; }
-    var WALK = 2000, MID = 30, W = window.innerWidth, pig = $('#fd-pig');
+    var WALK = 2000, MID = 26, W = window.innerWidth, pig = $('#fd-pig');
     // 돼지 왼쪽 끝은 -90px에서 W+10px까지 움직인다. 돼지 가운데(코)가 음식 위에 오면 몸을 낮춰 먹고 음식이 사라진다
     $all('.fd-splash-food', el).forEach(function(f){
       var r = f.getBoundingClientRect(), x = r.left + r.width / 2;
