@@ -396,9 +396,61 @@
   .fd-cal-hint{ text-align:center; color:var(--muted); font-size:14px; padding:6px 0 2px; }
 
   /* ---- 다녀온 곳 / 달력 ---- */
-  .fd-side{ display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
-  .fd-side button{ flex:1; min-width:0; height:40px; border-radius:var(--radius-pill); font-size:14.5px; color:var(--muted); white-space:nowrap; }
-  .fd-side button.on{ background:var(--surface); color:var(--ink); font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  .fd-side{ position:relative; display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
+  /* 고른 쪽 흰 바탕이 미끄러져 옮겨 간다 */
+  .fd-side::before{
+    content:''; position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:var(--radius-pill);
+    background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.08); transition:transform .32s cubic-bezier(.3,1.3,.5,1);
+  }
+  .fd-side.cal::before{ transform:translateX(100%); }
+  .fd-side button{ position:relative; z-index:1; flex:1; min-width:0; height:40px; border-radius:var(--radius-pill); font-size:14.5px; color:var(--muted); white-space:nowrap; transition:color .2s ease; }
+  .fd-side button.on{ color:var(--ink); font-weight:700; }
+
+  /* ---- 움직임 ---- */
+  @keyframes fd-chip-on{ 0%{ transform:scale(.9); } 60%{ transform:scale(1.06); } 100%{ transform:none; } }
+  @keyframes fd-dot-in{ from{ opacity:0; transform:scale(.3); } to{ opacity:1; transform:none; } }
+  @keyframes fd-zoom-in{ from{ opacity:0; transform:scale(.92); } to{ opacity:1; transform:none; } }
+  @keyframes fd-fab-in{ 0%{ opacity:0; transform:translateX(-50%) translateY(40px); } 70%{ opacity:1; transform:translateX(-50%) translateY(-5px); } 100%{ transform:translateX(-50%); } }
+  .fd-chip, .fd-seg button{ transition:background-color .2s ease, color .2s ease, border-color .2s ease, transform .12s ease; }
+  .fd-chip:active{ transform:scale(.94); }
+  .fd-chips .fd-chip.on, .fd-cat-pick .fd-chip.on{ animation:fd-chip-on .28s ease; }
+  .fd-cal-dot{ animation:fd-dot-in .38s cubic-bezier(.3,1.5,.5,1) both; }
+  .fd-viewer-track img{ animation:fd-zoom-in .25s ease both; }
+  .fd-sheet[data-detail] .fd-sheet-inner > *{ animation:fd-rise .3s ease both; }
+  .fd-sheet[data-detail] .fd-sheet-inner > :nth-child(2){ animation-delay:.04s; }
+  .fd-sheet[data-detail] .fd-sheet-inner > :nth-child(3){ animation-delay:.08s; }
+  .fd-sheet[data-detail] .fd-sheet-inner > :nth-child(4){ animation-delay:.12s; }
+  .fd-sheet[data-detail] .fd-sheet-inner > :nth-child(5){ animation-delay:.16s; }
+  .fd-sheet[data-detail] .fd-sheet-inner > :nth-child(n+6){ animation-delay:.2s; }
+  /* 시작 돼지가 지나간 뒤 화면이 차례로 올라온다 */
+  .fd-app.fd-enter > *{ animation:fd-rise .4s ease both; }
+  .fd-app.fd-enter > :nth-child(2){ animation-delay:.05s; }
+  .fd-app.fd-enter > :nth-child(3){ animation-delay:.1s; }
+  .fd-app.fd-enter > :nth-child(n+4){ animation-delay:.15s; }
+  .fd-fab.fd-enter{ animation:fd-fab-in .5s cubic-bezier(.3,1.2,.5,1) .2s both; }
+
+  /* ---- 시작 화면: 바닥의 음식을 주워 먹으며 지나가는 돼지 ---- */
+  .fd-splash{ position:fixed; inset:0; z-index:100; background:var(--bg); transition:opacity .25s ease; }
+  .fd-splash.out{ opacity:0; pointer-events:none; }
+  .fd-splash-stage{ position:absolute; left:0; right:0; top:42%; height:96px; overflow:hidden; }
+  .fd-splash-floor{ position:absolute; left:24px; right:24px; bottom:6px; height:3px; border-radius:3px; background:var(--line); }
+  .fd-splash-food{ position:absolute; bottom:8px; font-size:24px; line-height:1; transform:translateX(-50%); }
+  .fd-splash-food.eaten{ animation:fd-eaten .28s ease forwards; }
+  @keyframes fd-eaten{ 0%{ transform:translateX(-50%); } 40%{ transform:translateX(-50%) translateY(-12px) scale(.8); } 100%{ opacity:0; transform:translateX(-50%) translateY(-6px) scale(0); } }
+  .fd-yum{ position:absolute; bottom:52px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .5s ease forwards; pointer-events:none; }
+  @keyframes fd-yum{ from{ opacity:0; transform:translateX(-50%) translateY(6px); } 30%{ opacity:1; } to{ opacity:0; transform:translateX(-50%) translateY(-18px); } }
+  .fd-pig{ position:absolute; left:0; bottom:6px; width:120px; height:90px; animation:fd-pig-walk 1.2s linear forwards; }
+  @keyframes fd-pig-walk{ from{ transform:translateX(-130px); } to{ transform:translateX(calc(100vw + 10px)); } }
+  .fd-pig svg{ display:block; width:100%; height:100%; overflow:visible; animation:fd-pig-bob .15s ease-in-out infinite alternate; }
+  @keyframes fd-pig-bob{ from{ transform:translateY(0); } to{ transform:translateY(-4px); } }
+  .fd-pig .leg{ transform-box:fill-box; transform-origin:50% 0; animation:fd-pig-leg .15s ease-in-out infinite alternate; }
+  .fd-pig .leg.b{ animation-direction:alternate-reverse; }
+  @keyframes fd-pig-leg{ from{ transform:rotate(-22deg); } to{ transform:rotate(22deg); } }
+  .fd-pig .head{ transform-box:fill-box; transform-origin:15% 70%; transition:transform .09s ease; }
+  .fd-pig.munch .head{ transform:rotate(22deg) translateY(3px); }
+  .fd-pig .tail{ transform-box:fill-box; transform-origin:100% 50%; animation:fd-pig-tail .3s ease-in-out infinite alternate; }
+  @keyframes fd-pig-tail{ from{ transform:rotate(-15deg); } to{ transform:rotate(15deg); } }
+  .fd-splash-name{ position:absolute; left:0; right:0; top:calc(42% + 112px); text-align:center; font-size:20px; font-weight:800; color:var(--accent); animation:fd-rise .4s ease .1s both; }
   .fd-thumb.wish{ width:64px; height:64px; font-size:30px; }
   .fd-link-mark{ flex:none; font-size:11px; font-weight:700; color:var(--ink-soft); background:var(--surface-alt); border-radius:var(--radius-pill); padding:2px 8px; }
   .fd-want-chips{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -434,6 +486,38 @@
 </style>
 </head>
 <body>
+<div class="fd-splash" id="fd-splash" aria-hidden="true">
+  <div class="fd-splash-stage">
+    <div class="fd-splash-floor"></div>
+    <span class="fd-splash-food" style="left:30%">🍙</span>
+    <span class="fd-splash-food" style="left:55%">🍩</span>
+    <span class="fd-splash-food" style="left:80%">🍓</span>
+    <div class="fd-pig" id="fd-pig">
+      <svg viewBox="0 0 120 90" xmlns="http://www.w3.org/2000/svg">
+        <path class="tail" d="M22 44c-6 0-9-4-6-7s7 1 3 4c-3 2-8 1-9-2" fill="none" stroke="#EE9AB0" stroke-width="3" stroke-linecap="round"/>
+        <rect class="leg b" x="30" y="60" width="9" height="16" rx="4.5" fill="#EE9AB0"/>
+        <rect class="leg a" x="66" y="60" width="9" height="16" rx="4.5" fill="#EE9AB0"/>
+        <ellipse cx="52" cy="50" rx="32" ry="22" fill="#F9BCCB"/>
+        <rect class="leg a" x="38" y="62" width="9" height="16" rx="4.5" fill="#F4A9BD"/>
+        <rect class="leg b" x="74" y="62" width="9" height="16" rx="4.5" fill="#F4A9BD"/>
+        <ellipse cx="46" cy="44" rx="14" ry="8" fill="#FCD3DD" opacity=".7"/>
+        <g class="head">
+          <path d="M74 26l2-14 11 10z" fill="#EE9AB0"/>
+          <circle cx="86" cy="40" r="19" fill="#F9BCCB"/>
+          <path d="M84 24l8-12 5 14z" fill="#F4A9BD"/>
+          <ellipse cx="103" cy="45" rx="9" ry="7.5" fill="#F48FA8"/>
+          <ellipse cx="100" cy="45" rx="1.6" ry="2.4" fill="#C9637F"/>
+          <ellipse cx="106" cy="45" rx="1.6" ry="2.4" fill="#C9637F"/>
+          <circle cx="89" cy="35" r="2.6" fill="#3B2E25"/>
+          <circle cx="90" cy="34" r=".9" fill="#fff"/>
+          <ellipse cx="82" cy="46" rx="4" ry="2.5" fill="#F48FA8" opacity=".6"/>
+          <path d="M92 52q4 3 8 1" fill="none" stroke="#C9637F" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="fd-splash-name">먹보일기</div>
+</div>
 <div class="fd-app">
   <header class="fd-head">
     <div>
@@ -1005,7 +1089,7 @@
       list.forEach(function(x){ if (!pv && x.v.photos.length) pv = x.v; });
       var dot = pv ? '<img data-pid="' + esc(visitCover(pv)) + '" alt="">' : catEmoji(list[0].p.category);
       h += '<button type="button" class="fd-cal-day has fd-press" data-day="' + key + '" aria-label="' + m + '월 ' + d + '일 ' + list.length + '곳">' + num +
-        '<span class="fd-cal-dot">' + dot + (list.length > 1 ? '<span class="fd-cal-n">' + list.length + '</span>' : '') + '</span></button>';
+        '<span class="fd-cal-dot" style="animation-delay:' + Math.round(d * 12) + 'ms">' + dot + (list.length > 1 ? '<span class="fd-cal-n">' + list.length + '</span>' : '') + '</span></button>';
     }
     return h + '</div></section>';
   }
@@ -1069,6 +1153,7 @@
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     var cal = ui.side === 'calendar';
+    $('#fd-side').classList.toggle('cal', cal);
     ['.fd-search', '#fd-cats', '.fd-sortbar'].forEach(function(s){ $(s).style.display = cal ? 'none' : ''; });
   }
   function render(){ renderSide(); renderStats(); renderCats(); renderList(); }
@@ -2876,6 +2961,39 @@
   $('#fd-menu-btn').addEventListener('click', openMenu);
   $('#fd-map-btn').addEventListener('click', openMap);
   window.addEventListener('pagehide', finishPendingDelete);
+
+  // 시작 화면: 돼지가 1.2초 동안 왼쪽에서 오른쪽으로 걸으며 바닥 음식을 주워 먹는다. 누르면 바로 넘어간다.
+  // 움직임 줄이기를 켠 기기에서는 띄우지 않는다. 앱은 뒤에서 이미 그려져 있다
+  (function splash(){
+    var el = $('#fd-splash');
+    if (!el) return;
+    var app = $('.fd-app'), fab = $('#fd-add'), done = false, timers = [];
+    function finish(){
+      if (done) return;
+      done = true;
+      timers.forEach(clearTimeout);
+      el.classList.add('out');
+      app.classList.add('fd-enter'); fab.classList.add('fd-enter');
+      setTimeout(function(){ el.remove(); }, 260);
+    }
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return; }
+    var WALK = 1200, SNOUT = 106, W = window.innerWidth, pig = $('#fd-pig');
+    // 돼지 왼쪽 끝은 -130px에서 W+10px까지 움직인다. 코끝이 음식에 닿는 때에 고개를 숙이고 음식이 사라진다
+    $all('.fd-splash-food', el).forEach(function(f){
+      var r = f.getBoundingClientRect(), x = r.left + r.width / 2;
+      var at = (x - SNOUT + 130) / (W + 140) * WALK;
+      timers.push(setTimeout(function(){
+        pig.classList.add('munch');
+        f.classList.add('eaten');
+        var yum = document.createElement('span');
+        yum.className = 'fd-yum'; yum.textContent = '냠!'; yum.style.left = f.style.left;
+        f.parentNode.appendChild(yum);
+        timers.push(setTimeout(function(){ pig.classList.remove('munch'); }, 160));
+      }, Math.max(0, at - 60)));
+    });
+    timers.push(setTimeout(finish, WALK));
+    el.addEventListener('click', finish);
+  })();
 
   render();
 })();
