@@ -385,16 +385,9 @@
   .fd-link-edit{ align-items:center; }
 
   /* ---- 달력 ---- */
-  .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; animation:fd-rise .25s ease both; }
-  .fd-cal-month{ touch-action:none; }
-  .fd-cal-month.from-below{ animation:fd-cal-below .22s ease both; }
-  .fd-cal-month.from-above{ animation:fd-cal-above .22s ease both; }
-  @keyframes fd-cal-below{ from{ opacity:0; transform:translateY(40px); } to{ opacity:1; transform:none; } }
-  @keyframes fd-cal-above{ from{ opacity:0; transform:translateY(-40px); } to{ opacity:1; transform:none; } }
-  .fd-cal-head{ display:flex; align-items:center; justify-content:space-between; margin:0 4px 12px; }
+  .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; scroll-margin-top:12px; }
+  .fd-cal-head{ margin:0 4px 12px; }
   .fd-cal-month h3{ margin:0; text-align:center; font-size:17px; font-weight:800; color:var(--ink); }
-  .fd-cal-nav{ width:40px; height:36px; border-radius:var(--radius-pill); font-size:22px; line-height:1; color:var(--ink); }
-  .fd-cal-nav:disabled{ opacity:.2; }
   .fd-cal-grid{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); row-gap:2px; }
   .fd-cal-dow{ text-align:center; font-size:12px; color:var(--muted); padding-bottom:6px; }
   .fd-cal-day{ display:flex; flex-direction:column; align-items:center; gap:3px; min-height:60px; padding:3px 0; border-radius:var(--radius-sm); min-width:0; }
@@ -917,7 +910,7 @@
   var state = load();
   // side: 'places' 다녀온 곳 / 'calendar' 달력. 달력은 검색어·종류를 쓰지 않는다
   // (가고 싶은 곳 탭은 없앴다. 저장된 가고 싶은 곳은 지우지 않고 저장·백업에 그대로 남는다)
-  var ui = { side:'places', q:'', cat:'', sort:'recent', calMonth:'' };   // calMonth: 달력에 보이는 달 'YYYY-MM'
+  var ui = { side:'places', q:'', cat:'', sort:'recent', calJump:false, calEnd:'' };   // calJump: 다음에 달력을 그릴 때 이번 달로 스크롤, calEnd: 달력에 그려 둔 마지막 달
 
   function findPlace(id){
     for (var i = 0; i < state.places.length; i++) if (state.places[i].id === id) return state.places[i];
@@ -1065,12 +1058,9 @@
     Object.keys(by).forEach(function(k){ by[k].sort(function(a, b){ return cmp(b.v.createdAt, a.v.createdAt); }); });
     return by;
   }
-  function monthHTML(y, m, by, now, canPrev, canNext, anim){
+  function monthHTML(y, m, by, now){
     var startDow = new Date(y, m - 1, 1).getDay(), n = new Date(y, m, 0).getDate();
-    var h = '<section class="fd-cal-month' + (anim ? ' ' + anim : '') + '"><div class="fd-cal-head">' +
-      '<button type="button" class="fd-cal-nav" data-cal-go="-1" aria-label="전달"' + (canPrev ? '' : ' disabled') + '>‹</button>' +
-      '<h3>' + y + '년 ' + m + '월</h3>' +
-      '<button type="button" class="fd-cal-nav" data-cal-go="1" aria-label="다음 달"' + (canNext ? '' : ' disabled') + '>›</button></div><div class="fd-cal-grid">';
+    var h = '<section class="fd-cal-month" data-month="' + y + '-' + pad(m) + '"><div class="fd-cal-head"><h3>' + y + '년 ' + m + '월</h3></div><div class="fd-cal-grid">';
     ['일', '월', '화', '수', '목', '금', '토'].forEach(function(w){ h += '<span class="fd-cal-dow">' + w + '</span>'; });
     for (var i = 0; i < startDow; i++) h += '<span></span>';
     for (var d = 1; d <= n; d++) {
@@ -1085,14 +1075,13 @@
     }
     return h + '</div></section>';
   }
-  // 달력은 한 달씩 보여 준다. 위아래로 밀거나(마우스 휠) ‹ ›로 전달·다음 달.
-  // 넘길 수 있는 범위: 2026년 1월(그보다 앞선 방문이 있으면 그 달)부터 이번 달(미래 날짜 방문이 있으면 그 달)까지
-  var CAL_FIRST = '2026-01';
-  function calRange(){
-    var days = Object.keys(visitsByDay()).sort(), now = today().slice(0, 7);
+  // 달력은 여러 달을 위아래로 길게 이어 그리고, 화면 스크롤로 오간다. 달력을 열면 이번 달이 맨 위에 오게 맞춘다.
+  // 범위: 2026년 1월(그보다 앞선 방문이 있으면 그 달)부터 2050년 12월(그보다 뒤 방문이 있으면 그 달)까지
+  var CAL_FIRST = '2026-01', CAL_LAST = '2050-12';
+  function calRange(by){
+    var days = Object.keys(by || visitsByDay()).sort();
     var first = days.length && days[0].slice(0, 7) < CAL_FIRST ? days[0].slice(0, 7) : CAL_FIRST;
-    var last = days.length && days[days.length - 1].slice(0, 7) > now ? days[days.length - 1].slice(0, 7) : now;
-    if (first > last) first = last;
+    var last = days.length && days[days.length - 1].slice(0, 7) > CAL_LAST ? days[days.length - 1].slice(0, 7) : CAL_LAST;
     return { first:first, last:last };
   }
   function addMonth(ym, n){
@@ -1100,22 +1089,45 @@
     y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
     return y + '-' + pad(m + 1);
   }
-  function renderCalendar(anim){
-    var el = $('#fd-list'), by = visitsByDay(), now = today(), r = calRange();
-    if (!ui.calMonth) ui.calMonth = now.slice(0, 7);
-    if (ui.calMonth < r.first) ui.calMonth = r.first;
-    if (ui.calMonth > r.last) ui.calMonth = r.last;
-    var y = Number(ui.calMonth.slice(0, 4)), m = Number(ui.calMonth.slice(5, 7));
-    el.innerHTML = monthHTML(y, m, by, now, ui.calMonth > r.first, ui.calMonth < r.last, anim) +
-      (Object.keys(by).length ? '' : '<div class="fd-cal-hint">일기를 쓰면 다녀온 날에 사진이 붙어요</div>');
+  // 처음에는 이번 달 12개월 뒤(그보다 뒤 방문이 있으면 그 달)까지만 그리고, 아래 끝에 가까워지면 12개월씩 덧붙인다.
+  // 300달을 한꺼번에 그리면 폰에서 탭을 바꿀 때 멈칫한다. 위쪽(과거)은 다 그려 두어 위로 덧붙일 때 화면이 튀지 않게 한다.
+  // ui.calJump가 켜져 있으면(달력을 막 열었을 때) 이번 달로 스크롤한다. 저장 뒤 다시 그릴 때는 스크롤을 그대로 둔다
+  function renderCalendar(){
+    var el = $('#fd-list'), by = visitsByDay(), now = today(), r = calRange(by);
+    var days = Object.keys(by).sort(), end = addMonth(now.slice(0, 7), 12);
+    if (days.length && days[days.length - 1].slice(0, 7) > end) end = days[days.length - 1].slice(0, 7);
+    if (ui.calEnd && ui.calEnd > end) end = ui.calEnd;
+    if (end > r.last) end = r.last;
+    ui.calEnd = end;
+    el.innerHTML = (days.length ? '' : '<div class="fd-cal-hint">일기를 쓰면 다녀온 날에 사진이 붙어요</div>') + monthsHTML(r.first, end, by, now) +
+      (end < r.last ? '<div id="fd-cal-more" aria-hidden="true"></div>' : '');
     hydrateImgs(el);
+    if (ui.calJump) {
+      ui.calJump = false;
+      var cur = $('[data-month="' + now.slice(0, 7) + '"]', el);
+      if (cur) cur.scrollIntoView({ block:'start' });
+    }
+    calMore();
   }
-  // n = -1 전달, 1 다음 달. 끝이면 그대로
-  function calGo(n){
-    var r = calRange(), next = addMonth(ui.calMonth || today().slice(0, 7), n);
-    if (next < r.first || next > r.last) return;
-    ui.calMonth = next;
-    renderCalendar(n > 0 ? 'from-below' : 'from-above');
+  function monthsHTML(from, to, by, now){
+    var h = '';
+    for (var ym = from; ym <= to; ym = addMonth(ym, 1)) h += monthHTML(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), by, now);
+    return h;
+  }
+  // 아래 끝 표시가 화면 가까이(1200px 안) 오면 다음 12개월을 덧붙인다. 이미 그린 달은 그대로 두고 끝에만 붙인다
+  function calMore(){
+    var more = ui.side === 'calendar' && $('#fd-cal-more');
+    if (!more || more.getBoundingClientRect().top > window.innerHeight + 1200) return;
+    var by = visitsByDay(), r = calRange(by), from = addMonth(ui.calEnd, 1), to = addMonth(ui.calEnd, 12);
+    if (to > r.last) to = r.last;
+    if (from <= to) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = monthsHTML(from, to, by, today());
+      hydrateImgs(wrap);
+      while (wrap.firstChild) more.parentNode.insertBefore(wrap.firstChild, more);
+      ui.calEnd = to;
+    }
+    if (to >= r.last) more.remove();
   }
   // 날짜를 누르면: 사진이 있으면 그날 사진을 크게 띄우고 첫 사진부터 보여 준다.
   // 그날 방문들의 사진을 방문 순서·사진 순서 그대로 넘겨 볼 수 있고, 아래 가게 이름을 누르면 그 가게 화면.
@@ -2927,37 +2939,12 @@
     var b = e.target.closest('[data-side]');
     if (!b || b.dataset.side === ui.side) return;
     ui.side = b.dataset.side;
-    if (ui.side === 'calendar') ui.calMonth = '';   // 달력을 열 때마다 이번 달부터
-    render();
     window.scrollTo(0, 0);
+    if (ui.side === 'calendar') { ui.calJump = true; ui.calEnd = ''; }   // 달력을 열 때마다 이번 달부터
+    render();
   });
-  // 달력 위아래로 밀기: 손가락을 위로 밀면 다음 달, 아래로 밀면 전달 (화면 스크롤과 같은 방향)
-  var calTouch = null;
-  $('#fd-list').addEventListener('touchstart', function(e){
-    if (ui.side !== 'calendar' || !e.target.closest('.fd-cal-month') || e.touches.length !== 1) { calTouch = null; return; }
-    calTouch = { x:e.touches[0].clientX, y:e.touches[0].clientY };
-  }, { passive:true });
-  $('#fd-list').addEventListener('touchend', function(e){
-    if (!calTouch) return;
-    var t = e.changedTouches[0], dx = t.clientX - calTouch.x, dy = t.clientY - calTouch.y;
-    calTouch = null;
-    if (Math.abs(dy) < 40 || Math.abs(dy) < Math.abs(dx)) return;
-    calGo(dy < 0 ? 1 : -1);
-  }, { passive:true });
-  var calWheel = 0, calWheelAt = 0;
-  $('#fd-list').addEventListener('wheel', function(e){
-    if (ui.side !== 'calendar' || !e.target.closest('.fd-cal-month')) return;
-    e.preventDefault();
-    var t = Date.now();
-    if (t - calWheelAt < 450) return;   // 한 번 굴리면 한 달만
-    calWheel += e.deltaY;
-    if (Math.abs(calWheel) < 40) return;
-    calGo(calWheel > 0 ? 1 : -1);
-    calWheel = 0; calWheelAt = t;
-  }, { passive:false });
+  window.addEventListener('scroll', calMore, { passive:true });
   $('#fd-list').addEventListener('click', function(e){
-    var go = e.target.closest('[data-cal-go]');
-    if (go) { calGo(Number(go.dataset.calGo)); return; }
     var c = e.target.closest('[data-open]');
     if (c) { openDetail(c.dataset.open); return; }
     var day = e.target.closest('[data-day]');
