@@ -385,7 +385,9 @@
   .fd-link-edit{ align-items:center; }
 
   /* ---- 달력 ---- */
-  .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; scroll-margin-top:12px; }
+  .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; scroll-snap-align:center; }
+  /* 달력에서는 스크롤을 멈추면 가장 가까운 달이 위 탭과 아래 기록하기 단추 사이 한가운데로 온다 */
+  html.fd-cal-snap{ scroll-snap-type:y mandatory; scroll-padding-top:calc(env(safe-area-inset-top) + 64px); scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 90px); }
   .fd-cal-head{ margin:0 4px 12px; }
   .fd-cal-month h3{ margin:0; text-align:center; font-size:17px; font-weight:800; color:var(--ink); }
   .fd-cal-grid{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); row-gap:2px; }
@@ -400,7 +402,9 @@
   .fd-cal-hint{ text-align:center; color:var(--muted); font-size:14px; padding:6px 0 2px; }
 
   /* ---- 다녀온 곳 / 달력 ---- */
-  .fd-side{ position:relative; display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
+  /* 맨 위 바꾸기는 스크롤해도 화면 위에 붙어 있다. 그림자 두 겹(바탕색)이 뒤로 지나가는 내용을 가린다: 둘레 8px + 위쪽(상태 표시줄까지) */
+  .fd-side{ position:sticky; top:calc(env(safe-area-inset-top) + 8px); z-index:5; display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px;
+    box-shadow:0 0 0 8px var(--bg), 0 -100px 0 100px var(--bg); }
   /* 고른 쪽 흰 바탕이 미끄러져 옮겨 간다 */
   .fd-side::before{
     content:''; position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:var(--radius-pill);
@@ -1105,7 +1109,7 @@
     if (ui.calJump) {
       ui.calJump = false;
       var cur = $('[data-month="' + now.slice(0, 7) + '"]', el);
-      if (cur) cur.scrollIntoView({ block:'start' });
+      if (cur) cur.scrollIntoView({ block:'center' });
     }
     calMore();
   }
@@ -1158,6 +1162,7 @@
     });
     var cal = ui.side === 'calendar';
     $('#fd-side').classList.toggle('cal', cal);
+    document.documentElement.classList.toggle('fd-cal-snap', cal);
     ['.fd-search', '#fd-cats', '.fd-sortbar'].forEach(function(s){ $(s).style.display = cal ? 'none' : ''; });
   }
   function render(){ renderSide(); renderStats(); renderCats(); renderList(); }
