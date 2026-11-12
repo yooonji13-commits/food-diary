@@ -62,9 +62,13 @@
   /* ---- layout ---- */
   .fd-app{
     max-width:560px; margin:0 auto;
-    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px);
+    padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 110px);
   }
-  .fd-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  /* 맨 위 줄(다녀온 곳·달력 탭 + 백업 단추)은 스크롤해도 같은 자리에 붙어 있다. 두 탭에서 높이가 똑같다.
+     바탕색과 위쪽 그림자(바탕색)가 뒤로 지나가는 내용을 상태 표시줄까지 가린다 */
+  .fd-head{ position:sticky; top:calc(env(safe-area-inset-top) + 12px); z-index:5; display:flex; align-items:center; gap:10px;
+    background:var(--bg); box-shadow:0 -100px 0 100px var(--bg), 0 8px 0 0 var(--bg); }
+  #fd-stats{ margin:12px 4px 0; }
 
   .fd-sub{ margin:0; color:var(--muted); font-size:13.5px; }
   .fd-icon-btn{
@@ -388,7 +392,7 @@
   /* ---- 달력 ---- */
   .fd-cal-month{ background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:16px 8px 10px; scroll-snap-align:center; }
   /* 달력에서는 스크롤을 멈추면 가장 가까운 달이 위 탭과 아래 기록하기 단추 사이 한가운데로 온다 */
-  html.fd-cal-snap{ scroll-snap-type:y mandatory; scroll-padding-top:calc(env(safe-area-inset-top) + 64px); scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 90px); }
+  html.fd-cal-snap{ scroll-snap-type:y mandatory; scroll-padding-top:calc(env(safe-area-inset-top) + 68px); scroll-padding-bottom:calc(env(safe-area-inset-bottom) + 90px); }
   .fd-cal-head{ margin:0 4px 12px; }
   .fd-cal-month h3{ margin:0; text-align:center; font-size:17px; font-weight:800; color:var(--ink); }
   .fd-cal-grid{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); row-gap:2px; }
@@ -404,8 +408,7 @@
 
   /* ---- 다녀온 곳 / 달력 ---- */
   /* 맨 위 바꾸기는 스크롤해도 화면 위에 붙어 있다. 그림자 두 겹(바탕색)이 뒤로 지나가는 내용을 가린다: 둘레 8px + 위쪽(상태 표시줄까지) */
-  .fd-side{ position:sticky; top:calc(env(safe-area-inset-top) + 8px); z-index:5; display:flex; margin-top:14px; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px;
-    box-shadow:0 0 0 8px var(--bg), 0 -100px 0 100px var(--bg); }
+  .fd-side{ position:relative; flex:1; min-width:0; display:flex; background:var(--surface-alt); border-radius:var(--radius-pill); padding:4px; }
   /* 고른 쪽 흰 바탕이 미끄러져 옮겨 간다 */
   .fd-side::before{
     content:''; position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:var(--radius-pill);
@@ -510,17 +513,15 @@
 </div>
 <div class="fd-app">
   <header class="fd-head">
-    <div>
-      <p class="fd-sub" id="fd-stats"></p>
+    <div class="fd-side" id="fd-side" role="tablist">
+      <button type="button" data-side="places" role="tab">다녀온 곳</button>
+      <button type="button" data-side="calendar" role="tab">달력</button>
     </div>
     <button class="fd-icon-btn fd-press" id="fd-menu-btn" aria-label="백업과 설정">
       <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
     </button>
   </header>
-  <div class="fd-side" id="fd-side" role="tablist">
-    <button type="button" data-side="places" role="tab">다녀온 곳</button>
-    <button type="button" data-side="calendar" role="tab">달력</button>
-  </div>
+  <p class="fd-sub" id="fd-stats"></p>
   <label class="fd-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
     <input id="fd-q" type="search" placeholder="가게, 메뉴, 지역으로 찾기" autocomplete="off" enterkeyhint="search">
