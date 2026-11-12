@@ -448,10 +448,10 @@
   .fd-splash-food{ position:absolute; bottom:9px; width:25px; height:25px; transform:translateX(-50%); }
   .fd-splash-food.eaten{ animation:fd-eaten .4s steps(4) forwards; }
   @keyframes fd-eaten{ 0%{ transform:translateX(-50%); } 50%{ transform:translateX(-50%) translateY(-8px) scale(.7); } 100%{ opacity:0; transform:translateX(-50%) translateY(-4px) scale(0); } }
-  .fd-yum{ position:absolute; bottom:64px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
+  .fd-yum{ position:absolute; bottom:68px; transform:translateX(-50%); font-size:13px; font-weight:800; color:var(--accent); animation:fd-yum .7s steps(5) forwards; pointer-events:none; white-space:nowrap; }
   @keyframes fd-yum{ from{ opacity:0; transform:translateX(-50%) translateY(6px); } 25%{ opacity:1; } to{ opacity:0; transform:translateX(-50%) translateY(-18px); } }
   /* 돼지: 2초 동안 한 칸씩 쫑쫑 뛰듯 걸어간다 (다리 두 모양을 번갈아, 몸은 위아래로 톡톡) */
-  .fd-pig{ position:absolute; left:0; bottom:8px; width:51px; height:47px; animation:fd-pig-walk 2s linear forwards; }
+  .fd-pig{ position:absolute; left:0; bottom:6px; width:50px; height:55px; animation:fd-pig-walk 2s linear forwards; }
   @keyframes fd-pig-walk{ from{ transform:translateX(-90px); } to{ transform:translateX(calc(100vw + 10px)); } }
   .fd-pig svg{ width:100%; height:100%; animation:fd-pig-hop .3s steps(1) infinite; }
   @keyframes fd-pig-hop{ 0%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
@@ -2982,14 +2982,31 @@
     renderList();
   });
   // 맨 위 바꾸기: 검색어와 종류는 그대로 두고 목록 쪽만 바꾼다 (검색창은 다시 그리지 않는다)
-  $('#fd-side').addEventListener('click', function(e){
-    var b = e.target.closest('[data-side]');
-    if (!b || b.dataset.side === ui.side) return;
-    ui.side = b.dataset.side;
+  function setSide(side){
+    if (side === ui.side) return;
+    ui.side = side;
     window.scrollTo(0, 0);
     if (ui.side === 'calendar') { ui.calJump = true; ui.calEnd = ''; }   // 달력을 열 때마다 이번 달부터
     render();
+  }
+  $('#fd-side').addEventListener('click', function(e){
+    var b = e.target.closest('[data-side]');
+    if (b) setSide(b.dataset.side);
   });
+  // 첫 화면을 옆으로 밀어 탭을 바꾼다: 왼쪽으로 밀면 달력, 오른쪽으로 밀면 다녀온 곳 (탭 순서와 같은 방향).
+  // 시트가 열려 있을 때, 옆으로 스크롤되는 종류 줄에서 시작했을 때, 위아래 움직임이 더 클 때는 넘기지 않는다
+  var sideTouch = null;
+  $('.fd-app').addEventListener('touchstart', function(e){
+    sideTouch = e.touches.length === 1 && !document.body.classList.contains('fd-locked') && !e.target.closest('.fd-chips, input, textarea')
+      ? { x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now() } : null;
+  }, { passive:true });
+  $('.fd-app').addEventListener('touchend', function(e){
+    if (!sideTouch) return;
+    var t = e.changedTouches[0], dx = t.clientX - sideTouch.x, dy = t.clientY - sideTouch.y, quick = Date.now() - sideTouch.t < 700;
+    sideTouch = null;
+    if (!quick || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    setSide(dx < 0 ? 'calendar' : 'places');
+  }, { passive:true });
   window.addEventListener('scroll', calMore, { passive:true });
   $('#fd-list').addEventListener('click', function(e){
     var c = e.target.closest('[data-open]');
@@ -3011,29 +3028,26 @@
     return s;
   }
   function pxSVG(w, h, inner){ return '<svg class="fd-px" viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg">' + inner + '</svg>'; }
-  var PIG_PAL = { B:'#EC8AA3', E:'#CF5A7B', S:'#DE6E8D', N:'#8A3050', K:'#2A1F18', L:'#CF5A7B', M:'#8A3050', W:'#FFFFFF' };
-  // 앞을 보는 돼지 14×11칸. 다리는 두 모양(fa, fb)을 번갈아 보여 쫑쫑 걷는다. 먹을 때(yum)는 눈이 ^ ^, 입이 벌어진다
-  function pigSVG(){
-    // 12칸 × 11줄. 몸이 넓적해 보이지 않게 가로를 14칸에서 12칸으로 줄였다
-    var body = [
-      '.EE......EE.',
-      '.EEBBBBBBEE.',
-      '.BBBBBBBBBB.',
-      'BBBBBBBBBBBB',
-      'BBBBBBBBBBBB',
-      'BBBSSSSSSBBB',
-      'BBBSNSSNSBBB',
-      'BBBSSSSSSBBB',
-      '.BBBBBBBBBB.'
-    ];
-    var open = ['', '', '', '..K......K..', '..K......K..'];
-    var yum = ['', '', '', '..K......K..', '.K.K....K.K.', '', '', '', '.....MM.....'];
-    var fa = ['', '', '', '', '', '', '', '', '', '.LL.L..L.LL.', '.LL.L..L.LL.'];
-    var fb = ['', '', '', '', '', '', '', '', '', '.LL.L..L.LL.', 'LL.L....L.LL'];
-    return pxSVG(12, 11, pxRects(body, PIG_PAL) +
-      '<g class="open">' + pxRects(open, PIG_PAL) + '</g><g class="yum">' + pxRects(yum, PIG_PAL) + '</g>' +
-      '<g class="fa">' + pxRects(fa, PIG_PAL) + '</g><g class="fb">' + pxRects(fb, PIG_PAL) + '</g>');
+  // 시작 화면 강아지: 사용자가 보낸 낙서 그림처럼 하얀 몸에 검은 선, 늘어진 귀, 점 눈, ω 입.
+  // 무리는 돼지 때와 같다: open(평소 눈·입) / yum(먹을 때 ^ ^ 눈·벌린 입) / fa·fb(다리 두 장면을 번갈아)
+  function dogSVG(){
+    var L = 'fill="none" stroke="#2A1F18" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+    var F = 'fill="#FFFFFF" stroke="#2A1F18" stroke-width="2.2" stroke-linejoin="round"';
+    return '<svg viewBox="0 0 60 66" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">' +
+      '<g class="fa"><path ' + L + ' d="M25 54v7M35 54v7"/></g>' +
+      '<g class="fb"><path ' + L + ' d="M25 54l-3 6.5M35 54l3 6.5"/></g>' +
+      '<path ' + F + ' d="M20 32Q17 45 21 55H39Q43 45 40 32Z"/>' +
+      '<path ' + L + ' d="M24 39Q22.5 45 25.5 48.5M36 39Q37.5 45 34.5 48.5"/>' +
+      '<path ' + F + ' d="M16 13Q30 3 44 13Q48.5 23 45 33Q30 39 15 33Q11.5 23 16 13Z"/>' +
+      '<path ' + F + ' d="M19 10Q9 9 8 21Q7.5 28 13 27.5Q15.5 19 19 10Z"/>' +
+      '<path ' + F + ' d="M41 10Q51 9 52 21Q52.5 28 47 27.5Q44.5 19 41 10Z"/>' +
+      '<g class="open"><circle cx="25" cy="22" r="1.7" fill="#2A1F18"/><circle cx="35" cy="22" r="1.7" fill="#2A1F18"/>' +
+        '<path ' + L + ' stroke-width="1.8" d="M26.5 28Q28.2 30.2 30 28Q31.8 30.2 33.5 28"/></g>' +
+      '<g class="yum"><path ' + L + ' stroke-width="1.8" d="M22.5 23l2.5-2.5 2.5 2.5M32.5 23l2.5-2.5 2.5 2.5"/>' +
+        '<ellipse cx="30" cy="29.5" rx="2.6" ry="2.2" fill="#2A1F18"/></g>' +
+      '</svg>';
   }
+
 
   var PX_FOOD = {
     rice:  { pal:{ O:'#8F7D66', W:'#FFFFFF', D:'#1F2A22' }, rows:['..OO..', '.OWWO.', 'OWWWWO', 'OWDDWO', 'OODDOO'] },
@@ -3046,7 +3060,7 @@
   (function splash(){
     var el = $('#fd-splash');
     if (!el) return;
-    $('#fd-pig').innerHTML = pigSVG();
+    $('#fd-pig').innerHTML = dogSVG();
     $all('[data-px]', el).forEach(function(f){ var d = PX_FOOD[f.dataset.px]; f.innerHTML = pxSVG(6, 6, pxRects(d.rows, d.pal)); });
     var app = $('.fd-app'), fab = $('#fd-add'), done = false, timers = [];
     function finish(){
@@ -3058,7 +3072,7 @@
       setTimeout(function(){ el.remove(); }, 260);
     }
     if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) { el.remove(); return; }
-    var WALK = 2000, MID = 26, W = window.innerWidth, pig = $('#fd-pig');
+    var WALK = 2000, MID = 25, W = window.innerWidth, pig = $('#fd-pig');
     // 돼지 왼쪽 끝은 -90px에서 W+10px까지 움직인다. 돼지 가운데(코)가 음식 위에 오면 몸을 낮춰 먹고 음식이 사라진다
     $all('.fd-splash-food', el).forEach(function(f){
       var r = f.getBoundingClientRect(), x = r.left + r.width / 2;
