@@ -301,7 +301,8 @@
 
   /* ---- photo viewer ---- */
   .fd-viewer{ position:fixed; inset:0; z-index:40; background:#000; animation:fd-fade-in .18s ease; }
-  .fd-viewer-track{ display:flex; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .fd-viewer-track{ display:flex; height:100%; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; touch-action:pan-x; }
+  .fd-viewer.dragging .fd-viewer-count, .fd-viewer.dragging .fd-viewer-close, .fd-viewer.dragging .fd-viewer-place{ opacity:0; transition:opacity .15s; }
   .fd-viewer-track::-webkit-scrollbar{ display:none; }
   .fd-viewer-track div{ flex:none; width:100%; height:100%; scroll-snap-align:center; display:grid; place-items:center; }
   .fd-viewer-track img{ max-width:100%; max-height:100%; object-fit:contain; }
@@ -1489,8 +1490,49 @@
       count.textContent = ids.length > 1 ? (cur() + 1) + ' / ' + ids.length : '';
       if (placeBtn) { var p = placeOf(cur()); placeBtn.textContent = catEmoji(p.category) + ' ' + (p.name || '이름 없는 가게') + ' ›'; }
     }
-    function close(){ el.remove(); unlock(); }
+    var closed = false;
+    function close(){ if (closed) return; closed = true; el.remove(); unlock(); }
     track.scrollLeft = start * track.clientWidth;
+    // 아래로 쓸어내리면 사진이 손가락을 따라 내려가며 바탕이 옅어지고, 놓을 때 충분히 내렸으면(110px 또는 빠르게) 닫는다.
+    // 옆으로 넘기기는 브라우저 스크롤(touch-action:pan-x)이 맡고, 처음 움직인 방향이 아래일 때만 끌기로 본다
+    var drag = null;
+    function setDrag(dy, anim){
+      track.style.transition = anim ? 'transform .22s ease' : '';
+      el.style.transition = anim ? 'background-color .22s ease' : '';
+      track.style.transform = dy ? 'translateY(' + dy + 'px) scale(' + Math.max(.8, 1 - dy / 1500) + ')' : '';
+      el.style.backgroundColor = 'rgba(0,0,0,' + Math.max(0, 1 - dy / 500) + ')';
+    }
+    el.addEventListener('touchstart', function(e){
+      if (e.touches.length !== 1 || e.target.closest('button')) { drag = null; return; }
+      drag = { x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now(), dy:0, on:null };
+    }, { passive:true });
+    el.addEventListener('touchmove', function(e){
+      if (!drag) return;
+      var dx = e.touches[0].clientX - drag.x, dy = e.touches[0].clientY - drag.y;
+      if (drag.on === null) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.on = dy > 0 && dy > Math.abs(dx);
+        if (drag.on) el.classList.add('dragging');
+      }
+      if (!drag.on) return;
+      e.preventDefault();
+      drag.dy = Math.max(0, dy);
+      setDrag(drag.dy, false);
+    }, { passive:false });
+    function endDrag(){
+      if (!drag || !drag.on) { drag = null; return; }
+      var d = drag; drag = null;
+      var fast = d.dy > 40 && d.dy / Math.max(1, Date.now() - d.t) > 0.6;
+      if (d.dy > 110 || fast) {
+        setDrag(window.innerHeight, true);
+        setTimeout(close, 220);
+      } else {
+        el.classList.remove('dragging');
+        setDrag(0, true);
+      }
+    }
+    el.addEventListener('touchend', endDrag);
+    el.addEventListener('touchcancel', endDrag);
     upd();
     track.addEventListener('scroll', upd, { passive:true });
     $('.fd-viewer-close', el).addEventListener('click', close);
