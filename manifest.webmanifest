@@ -1,6 +1,6 @@
 {
-  "name": "먹보일기",
-  "short_name": "먹보일기",
+  "name": "음식기록",
+  "short_name": "음식기록",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
